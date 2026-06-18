@@ -196,6 +196,77 @@
   .tl-custom{font-family:"IBM Plex Mono",monospace;font-size:.55rem;letter-spacing:.06em;text-transform:uppercase;color:var(--sen);border:1px solid var(--sen);border-radius:3px;padding:1px 4px;margin-left:7px;vertical-align:1px;}
   .m-act .tl-custom,.m-eat .tl-custom{color:#34c46f;border-color:#34c46f;}
   .tl-empty{color:var(--ink-soft);font-size:.86rem;padding:6px 0 2px;}
+
+  /* At-a-glance note on planner items + tappable affordance */
+  .item-note{font-size:.74rem;line-height:1.35;color:var(--ink-soft);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .item-main.tappable{cursor:pointer;}
+  .item-main.tappable .item-title{transition:color .12s;}
+  .item-main.tappable:hover .item-title,.item-main.tappable:focus-visible .item-title{color:var(--nor);}
+  .item-main.tappable:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:4px;}
+  /* Timeline slots become tappable for details */
+  [data-detail-id]{cursor:pointer;}
+  .slot[data-detail-id]:hover .pick,.m-slot[data-detail-id]:hover{color:var(--nor);}
+  .fixture[data-detail-id]{cursor:pointer;}
+
+  /* ---- Activity detail modal ---- */
+  .modal-backdrop{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(16,18,24,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+    opacity:0;transition:opacity .18s ease;padding:0;}
+  .modal-backdrop[hidden]{display:none;}
+  .modal-backdrop.open{opacity:1;}
+  @media(min-width:560px){.modal-backdrop{align-items:center;padding:24px;}}
+  .modal{position:relative;background:var(--card);color:var(--ink);width:100%;max-width:560px;max-height:92vh;
+    border-radius:16px 16px 0 0;overflow:hidden;display:flex;flex-direction:column;
+    transform:translateY(16px);transition:transform .2s ease;box-shadow:0 -10px 40px rgba(16,18,24,.3);}
+  .modal-backdrop.open .modal{transform:none;}
+  @media(min-width:560px){.modal{border-radius:14px;box-shadow:0 20px 60px rgba(16,18,24,.4);}}
+  .modal.is-match{background:var(--night);color:#EDEFF3;}
+  .modal-close{position:absolute;top:10px;right:10px;z-index:2;width:36px;height:36px;border-radius:50%;border:none;
+    background:rgba(16,18,24,.5);color:#fff;font-size:1.3rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .modal-close:hover{background:rgba(16,18,24,.72);}
+  .modal-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .dm-photos{display:flex;gap:0;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;background:#e7ebf0;}
+  .modal.is-match .dm-photos{background:#15171d;}
+  .dm-photos:empty{display:none;}
+  .dm-photo{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:16/10;background:#dfe4ea;position:relative;overflow:hidden;}
+  .modal.is-match .dm-photo{background:#1b1e26;}
+  .dm-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .dm-photo figcaption{position:absolute;left:0;right:0;bottom:0;font-family:"IBM Plex Mono",monospace;font-size:.58rem;
+    letter-spacing:.04em;color:#fff;background:linear-gradient(transparent,rgba(16,18,24,.72));padding:18px 11px 7px;}
+  .dm-skel{display:flex;gap:8px;padding:14px 16px 0;}
+  .dm-skel span{flex:1;height:54px;border-radius:8px;background:linear-gradient(90deg,#e3e7ec 25%,#eef1f5 37%,#e3e7ec 63%);
+    background-size:400% 100%;animation:shimmer 1.3s ease infinite;}
+  .modal.is-match .dm-skel span{background:#20242c;animation:none;}
+  @keyframes shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
+  .dm-nophoto{font-size:.78rem;color:var(--ink-soft);padding:13px 16px 0;}
+  .modal.is-match .dm-nophoto{color:#9aa0ac;}
+  .dm-body{padding:15px 17px 20px;}
+  .dm-tagrow{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:7px;}
+  .dm-tag{font-family:"IBM Plex Mono",monospace;font-size:.62rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--paper);background:var(--ink);border-radius:4px;padding:3px 7px;}
+  .modal.is-match .dm-tag{background:linear-gradient(90deg,var(--nor),var(--sen));color:#fff;}
+  .dm-area{font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);}
+  .modal.is-match .dm-area{color:#9aa0ac;}
+  .dm-title{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:1.45rem;line-height:1.12;letter-spacing:-.01em;margin:0 0 9px;}
+  .dm-note{font-size:.93rem;line-height:1.5;color:var(--ink);}
+  .modal.is-match .dm-note{color:#dfe2e8;}
+  .dm-extra{margin-top:14px;}
+  .dm-about{border-top:1px solid var(--hair);margin-top:14px;padding-top:12px;}
+  .modal.is-match .dm-about{border-color:#2a2d36;}
+  .dm-about-h{font-family:"IBM Plex Mono",monospace;font-size:.61rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:5px;}
+  .dm-about p{margin:0;font-size:.86rem;line-height:1.5;color:var(--ink-soft);}
+  .dm-link{display:inline-block;margin-top:8px;font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--nor);text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:1px;}
+  .modal.is-match .dm-link{color:#ff5168;}
+  /* Match fixture inside modal */
+  .dm-fixture{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:1.5rem;line-height:1.05;margin:14px 0 .3em;
+    display:flex;align-items:center;gap:.35em;flex-wrap:wrap;border-top:1px solid #2a2d36;padding-top:14px;}
+  .dm-fixture .v{color:#7b818d;font-weight:500;font-size:.8em;}
+  .dm-kick{display:flex;flex-wrap:wrap;gap:6px 16px;margin:4px 0 12px;font-family:"IBM Plex Mono",monospace;font-size:.73rem;color:#cfd3da;}
+  .dm-kick b{color:#fff;font-weight:600;}
+  .dm-ticket{background:#1b1e26;border:1px solid #2f333d;border-radius:6px;padding:11px 13px;}
+  .dm-ticket-h{font-family:"IBM Plex Mono",monospace;font-size:.61rem;letter-spacing:.11em;text-transform:uppercase;color:#8d93a0;margin-bottom:5px;}
+  .dm-ticket p{margin:0;font-size:.88rem;color:#e7e9ee;}
 </style>
 </head>
 <body>
@@ -303,6 +374,23 @@
   </footer>
 
 </div>
+
+<!-- ============ ACTIVITY DETAIL MODAL ============ -->
+<div class="modal-backdrop" id="detailModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dmTitle">
+    <button class="modal-close" id="dmClose" type="button" aria-label="Close details">&times;</button>
+    <div class="modal-scroll">
+      <div class="dm-photos" id="dmPhotos" aria-hidden="true"></div>
+      <div class="dm-body">
+        <div class="dm-tagrow" id="dmTagRow"></div>
+        <h2 class="dm-title" id="dmTitle"></h2>
+        <div class="dm-note" id="dmNote"></div>
+        <div class="dm-extra" id="dmExtra"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 /*APP_START*/
 (function(){
@@ -402,6 +490,51 @@
     {name:"Peter Luger",area:"Idea / evening · Williamsburg",lat:40.7098774,lng:-73.9625052,day:"idea"}
   ];
 
+  // Wikipedia article titles per activity — used to pull representative photos and a
+  // short blurb on demand (REST summary API, CORS-enabled). Missing articles degrade silently.
+  var WIKI={
+    d1a1:["Central Park","Gapstow Bridge"],
+    d1e1:["Columbus Circle"],
+    d1a2:["Rockefeller Center","30 Rockefeller Plaza"],
+    d1e2:["Keens Steakhouse"],
+    d2a1:["Statue of Liberty","Ellis Island"],
+    d2e1:["Financial District, Manhattan"],
+    d2a2:["National September 11 Memorial & Museum","Wall Street"],
+    d2e2:["The Dead Rabbit"],
+    d3a1:["Metropolitan Museum of Art"],
+    d3e1:["Bagel"],
+    d3a2:["Bethesda Terrace and Fountain","Bow Bridge (Central Park)"],
+    d3e2:["Italian cuisine"],
+    d4a1:["Chelsea Market","High Line"],
+    d4e1:["Chelsea Market"],
+    d4a2:["Hudson Yards (development)","Vessel (structure)"],
+    d4e2:["Korean barbecue","Koreatown, Manhattan"],
+    d4m:["MetLife Stadium","Norway national football team","Senegal national football team"],
+    d5a1:["Brooklyn Bridge","Dumbo, Brooklyn"],
+    d5e1:["Empire Stores"],
+    d5a2:["Brooklyn Bridge Park"],
+    d5e2:["Grimaldi's Pizzeria"],
+    d6a1:["Grand Central Terminal","New York Public Library Main Branch","Bryant Park"],
+    d6e1:["Grand Central Oyster Bar & Restaurant"],
+    d6a2:["One Vanderbilt"],
+    d6e2:["Times Square"],
+    d7a1:["Washington Square Park","Greenwich Village"],
+    d7e1:["West Village"],
+    d7a2:["SoHo, Manhattan","Cast-iron architecture"],
+    d7e2:["Balthazar (restaurant)"],
+    id1:["Katz's Delicatessen"],
+    id2:["American Museum of Natural History"],
+    id3:["Levain Bakery"],
+    id4:["Peter Luger Steak House"],
+    id5:["Comedy Cellar"],
+    id6:["Village Vanguard"],
+    id7:["Broadway theatre","Times Square"],
+    id8:["Little Island (park)"],
+    id9:["Staten Island Ferry"],
+    id10:["Rooftop bar"],
+    id11:["Times Square"]
+  };
+
   var STORE_KEY="nyc-trip-board-v3";
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
   function laneList(id){return document.getElementById("lane-"+id);}
@@ -419,10 +552,15 @@
     var drag=document.createElement("span"); drag.className="drag"; drag.setAttribute("aria-hidden","true"); drag.textContent="\u22EE\u22EE";
     var btn=document.createElement("button"); btn.type="button"; btn.className="check";
     btn.setAttribute("aria-label","Mark done: "+it.title); btn.setAttribute("aria-pressed",done?"true":"false"); btn.textContent="\u2713";
-    var main=document.createElement("div"); main.className="item-main";
+    var main=document.createElement("div"); main.className="item-main tappable";
+    main.setAttribute("role","button"); main.setAttribute("tabindex","0");
+    main.setAttribute("aria-label","Details for "+it.title);
     var t=document.createElement("div"); t.className="item-title"; t.textContent=it.title;
     var m=document.createElement("div"); m.className="item-meta"; m.textContent=it.area?(it.tag+" \u00b7 "+it.area):it.tag;
     main.appendChild(t); main.appendChild(m);
+    if(it.note){ var n=document.createElement("div"); n.className="item-note"; n.textContent=it.note; main.appendChild(n); }
+    main.addEventListener("click",function(){openDetail(it);});
+    main.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openDetail(it); } });
     btn.addEventListener("click",function(){toggle(li,btn);});
     li.appendChild(drag); li.appendChild(btn); li.appendChild(main);
     if(it.custom){
@@ -534,11 +672,12 @@
   }
   function tlSlot(it,st){
     var done=!!st.done[it.id], dc=done?" tl-done":"", cm=it.custom?'<span class="tl-custom">Added</span>':"";
+    var di=' data-detail-id="'+esc(it.id)+'" role="button" tabindex="0"';
     if(it.tag==="Eat"){
-      return '<div class="slot"><div class="slot-tag">Eat</div><div><p class="eat'+dc+'"><span class="eat-l">Eat</span><span class="pick">'+esc(it.title)+'</span>'+
+      return '<div class="slot"'+di+'><div class="slot-tag">Eat</div><div><p class="eat'+dc+'"><span class="eat-l">Eat</span><span class="pick">'+esc(it.title)+'</span>'+
         (it.area?' <span class="area">\u00b7 '+esc(it.area)+'</span>':"")+cm+(it.note?'<span class="hint">'+esc(it.note)+'</span>':"")+'</p></div></div>';
     }
-    return '<div class="slot"><div class="slot-tag">'+esc(it.tag)+'</div><div><p class="act'+dc+'"><span class="pick">'+esc(it.title)+'</span>'+
+    return '<div class="slot"'+di+'><div class="slot-tag">'+esc(it.tag)+'</div><div><p class="act'+dc+'"><span class="pick">'+esc(it.title)+'</span>'+
       (it.area?' <span class="area">'+esc(it.area)+'</span>':"")+cm+(it.note?'<span class="hint">'+esc(it.note)+'</span>':"")+'</p></div></div>';
   }
   function dayCard(day,items,st){
@@ -555,15 +694,16 @@
     h+='<div class="match-tag"><span>Day '+esc(day.n)+' \u00b7 '+esc(day.dow)+' \u00b7 '+esc(day.date)+'</span><span>'+esc(day.theme)+'</span></div>';
     others.forEach(function(it){
       var done=!!st.done[it.id], dc=done?" tl-done":"", cm=it.custom?'<span class="tl-custom">Added</span>':"";
+      var mdi=' data-detail-id="'+esc(it.id)+'" role="button" tabindex="0"';
       if(it.tag==="Eat"){
-        h+='<div class="m-slot"><div class="m-slot-tag">Eat</div><div><p class="m-eat'+dc+'"><span class="m-eat-l">Eat</span>'+esc(it.title)+cm+(it.note?'<span class="m-hint">'+esc(it.note)+'</span>':"")+'</p></div></div>';
+        h+='<div class="m-slot"'+mdi+'><div class="m-slot-tag">Eat</div><div><p class="m-eat'+dc+'"><span class="m-eat-l">Eat</span>'+esc(it.title)+cm+(it.note?'<span class="m-hint">'+esc(it.note)+'</span>':"")+'</p></div></div>';
       } else {
-        h+='<div class="m-slot"><div class="m-slot-tag">'+esc(it.tag)+'</div><div><p class="m-act'+dc+'">'+esc(it.title)+cm+(it.note?'<span class="m-hint">'+esc(it.note)+'</span>':"")+'</p></div></div>';
+        h+='<div class="m-slot"'+mdi+'><div class="m-slot-tag">'+esc(it.tag)+'</div><div><p class="m-act'+dc+'">'+esc(it.title)+cm+(it.note?'<span class="m-hint">'+esc(it.note)+'</span>':"")+'</p></div></div>';
       }
     });
     if(m&&m.match){
       var f=m.match;
-      h+='<div class="fixture"><span class="team-nor">'+esc(f.home)+'</span><span class="v">v</span><span class="team-sen">'+esc(f.away)+'</span></div>';
+      h+='<div class="fixture" data-detail-id="'+esc(m.id)+'" role="button" tabindex="0"><span class="team-nor">'+esc(f.home)+'</span><span class="v">v</span><span class="team-sen">'+esc(f.away)+'</span></div>';
       h+='<div class="kick"><span>KICKOFF <b>'+esc(f.kick)+'</b></span><span>GATES <b>'+esc(f.gates)+'</b></span><span><b>'+esc(f.venue)+'</b></span></div>';
       if(f.ticket) h+='<div class="ticket"><div class="ticket-h">Your run to the stadium</div><p>'+esc(f.ticket)+'</p></div>';
     } else if(m){
@@ -630,8 +770,105 @@
     el.innerHTML=html;
   }
 
+  /* ---- Activity detail modal (brief details + photos on tap) ---- */
+  var wikiCache={};       // title -> {img,extract,url,title} | null
+  var detailOpener=null;  // element to restore focus to on close
+  function bumpPx(src){   // request a slightly larger thumbnail than the API default
+    return src.replace(/\/(\d+)px-/, function(_,n){ return "/"+Math.min(Math.max(parseInt(n,10),640),1024)+"px-"; });
+  }
+  function wikiSummary(title){
+    if(Object.prototype.hasOwnProperty.call(wikiCache,title)) return Promise.resolve(wikiCache[title]);
+    var url="https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(title);
+    return fetch(url).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(d){
+      var out=null;
+      if(d && d.type!=="disambiguation"){
+        var img=(d.thumbnail&&d.thumbnail.source)||(d.originalimage&&d.originalimage.source)||"";
+        out={ img:img?bumpPx(img):"", extract:d.extract||"",
+              url:(d.content_urls&&d.content_urls.desktop&&d.content_urls.desktop.page)||"",
+              title:d.title||title };
+      }
+      wikiCache[title]=out; return out;
+    }).catch(function(){ wikiCache[title]=null; return null; });
+  }
+  function renderPhotos(box, results, token){
+    if(box.getAttribute("data-token")!==token) return; // a newer open superseded us
+    var seen={}, photos=[];
+    results.forEach(function(r){ if(r&&r.img&&!seen[r.img]){ seen[r.img]=1; photos.push(r); } });
+    photos=photos.slice(0,4);
+    if(!photos.length){ box.innerHTML='<div class="dm-nophoto">No photos to show for this one — but the details are below.</div>'; return; }
+    box.innerHTML=photos.map(function(p){
+      return '<figure class="dm-photo"><img loading="lazy" src="'+esc(p.img)+'" alt="'+esc(p.title)+'">'+
+             '<figcaption>'+esc(p.title)+' · Wikimedia</figcaption></figure>';
+    }).join("");
+  }
+  function loadPhotos(it){
+    var box=document.getElementById("dmPhotos"); if(!box) return;
+    var token=String(Date.now())+Math.random(); box.setAttribute("data-token",token);
+    var titles=(WIKI[it.id]||[]).slice();
+    if(!titles.length && it.title) titles=[it.title.replace(/\s*[—–→·].*$/,"").trim()]; // best-effort for custom items
+    if(!titles.length){ box.innerHTML='<div class="dm-nophoto">No photos to show for this one — but the details are below.</div>'; return; }
+    box.innerHTML='<div class="dm-skel"><span></span><span></span><span></span></div>';
+    Promise.all(titles.map(wikiSummary)).then(function(results){
+      renderPhotos(box, results, token);
+      // surface a short Wikipedia blurb + link from the first article that has one
+      if(box.getAttribute("data-token")!==token) return;
+      var first=null; for(var i=0;i<results.length;i++){ if(results[i]&&results[i].extract){ first=results[i]; break; } }
+      var about=document.getElementById("dmAbout");
+      if(first&&about){
+        about.innerHTML='<div class="dm-about-h">About · '+esc(first.title)+'</div><p>'+esc(first.extract)+'</p>'+
+          (first.url?'<a class="dm-link" href="'+esc(first.url)+'" target="_blank" rel="noopener">Read more on Wikipedia</a>':"");
+      }
+    });
+  }
+  function matchHTML(it){
+    if(!it.match) return "";
+    var f=it.match, h="";
+    h+='<div class="dm-fixture"><span class="team-nor">'+esc(f.home)+'</span><span class="v">v</span><span class="team-sen">'+esc(f.away)+'</span></div>';
+    h+='<div class="dm-kick"><span>KICKOFF <b>'+esc(f.kick)+'</b></span><span>GATES <b>'+esc(f.gates)+'</b></span><span><b>'+esc(f.venue)+'</b></span></div>';
+    if(f.ticket) h+='<div class="dm-ticket"><div class="dm-ticket-h">Your run to the stadium</div><p>'+esc(f.ticket)+'</p></div>';
+    return h;
+  }
+  function openDetail(it){
+    var bg=document.getElementById("detailModal"); if(!bg||!it) return;
+    var isMatch=(it.tag==="Match");
+    detailOpener=document.activeElement;
+    bg.querySelector(".modal").classList.toggle("is-match",isMatch);
+    var tagRow=document.getElementById("dmTagRow");
+    tagRow.innerHTML='<span class="dm-tag">'+esc(isMatch?"Match":it.tag)+'</span>'+(it.area?'<span class="dm-area">'+esc(it.area)+'</span>':"");
+    document.getElementById("dmTitle").textContent=it.title;
+    document.getElementById("dmNote").textContent=it.note||"";
+    document.getElementById("dmExtra").innerHTML=matchHTML(it)+'<div class="dm-about" id="dmAbout"></div>';
+    bg.hidden=false;
+    requestAnimationFrame(function(){ bg.classList.add("open"); });
+    document.addEventListener("keydown",onModalKey);
+    var c=document.getElementById("dmClose"); if(c) try{ c.focus(); }catch(e){}
+    var sc=bg.querySelector(".modal-scroll"); if(sc) sc.scrollTop=0;
+    loadPhotos(it);
+  }
+  function closeDetail(){
+    var bg=document.getElementById("detailModal"); if(!bg||bg.hidden) return;
+    bg.classList.remove("open");
+    document.removeEventListener("keydown",onModalKey);
+    setTimeout(function(){ bg.hidden=true; },180);
+    if(detailOpener&&detailOpener.focus){ try{ detailOpener.focus(); }catch(e){} }
+    detailOpener=null;
+  }
+  function onModalKey(e){ if(e.key==="Escape"){ e.preventDefault(); closeDetail(); } }
+  function bindDetailModal(){
+    var bg=document.getElementById("detailModal"); if(!bg) return;
+    var c=document.getElementById("dmClose"); if(c) c.addEventListener("click",closeDetail);
+    bg.addEventListener("click",function(e){ if(e.target===bg) closeDetail(); });
+    // Delegated taps from the timeline (day-by-day cards)
+    var tl=document.getElementById("dayByDay");
+    if(tl){
+      tl.addEventListener("click",function(e){ var el=e.target.closest&&e.target.closest("[data-detail-id]"); if(el){ var it=ITEM_BY_ID[el.getAttribute("data-detail-id")]; if(it) openDetail(it); } });
+      tl.addEventListener("keydown",function(e){ if(e.key!=="Enter"&&e.key!==" ") return; var el=e.target.closest&&e.target.closest("[data-detail-id]"); if(el){ e.preventDefault(); var it=ITEM_BY_ID[el.getAttribute("data-detail-id")]; if(it) openDetail(it); } });
+    }
+  }
+
   function boot(){
     initTabs();
+    bindDetailModal();
     renderDefault();
     var s=loadStateSync();
     if(s){
