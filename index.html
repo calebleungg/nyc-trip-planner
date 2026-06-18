@@ -227,18 +227,30 @@
     background:rgba(16,18,24,.5);color:#fff;font-size:1.3rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .modal-close:hover{background:rgba(16,18,24,.72);}
   .modal-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;}
-  .dm-photos{display:flex;gap:0;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;background:#e7ebf0;}
-  .modal.is-match .dm-photos{background:#15171d;}
-  .dm-photos:empty{display:none;}
+  /* Photo carousel */
+  .dm-carousel{position:relative;background:#e7ebf0;}
+  .modal.is-match .dm-carousel{background:#15171d;}
+  .dm-carousel[hidden]{display:none;}
+  .dm-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .dm-track::-webkit-scrollbar{display:none;}
   .dm-photo{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:16/10;background:#dfe4ea;position:relative;overflow:hidden;}
   .modal.is-match .dm-photo{background:#1b1e26;}
   .dm-photo img{width:100%;height:100%;object-fit:cover;display:block;}
   .dm-photo figcaption{position:absolute;left:0;right:0;bottom:0;font-family:"IBM Plex Mono",monospace;font-size:.58rem;
     letter-spacing:.04em;color:#fff;background:linear-gradient(transparent,rgba(16,18,24,.72));padding:18px 11px 7px;}
-  .dm-skel{display:flex;gap:8px;padding:14px 16px 0;}
-  .dm-skel span{flex:1;height:54px;border-radius:8px;background:linear-gradient(90deg,#e3e7ec 25%,#eef1f5 37%,#e3e7ec 63%);
+  .dm-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:34px;height:34px;border-radius:50%;border:none;
+    background:rgba(16,18,24,.5);color:#fff;font-size:1.3rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:background .12s,opacity .12s;}
+  .dm-nav:hover{background:rgba(16,18,24,.74);}
+  .dm-nav.prev{left:9px;} .dm-nav.next{right:9px;}
+  .dm-nav[disabled]{opacity:0;pointer-events:none;}
+  .dm-carousel.single .dm-nav,.dm-carousel.single .dm-dots{display:none;}
+  .dm-dots{position:absolute;left:0;right:0;bottom:8px;z-index:3;display:flex;justify-content:center;gap:6px;pointer-events:none;}
+  .dm-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.55);box-shadow:0 0 2px rgba(16,18,24,.5);transition:background .12s,transform .12s;}
+  .dm-dots i.on{background:#fff;transform:scale(1.35);}
+  .dm-skel{aspect-ratio:16/10;background:linear-gradient(90deg,#e3e7ec 25%,#eef1f5 37%,#e3e7ec 63%);
     background-size:400% 100%;animation:shimmer 1.3s ease infinite;}
-  .modal.is-match .dm-skel span{background:#20242c;animation:none;}
+  .modal.is-match .dm-skel{background:#20242c;animation:none;}
   @keyframes shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
   .dm-nophoto{font-size:.78rem;color:var(--ink-soft);padding:13px 16px 0;}
   .modal.is-match .dm-nophoto{color:#9aa0ac;}
@@ -382,7 +394,8 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dmTitle">
     <button class="modal-close" id="dmClose" type="button" aria-label="Close details">&times;</button>
     <div class="modal-scroll">
-      <div class="dm-photos" id="dmPhotos" aria-hidden="true"></div>
+      <div class="dm-carousel" id="dmPhotos"></div>
+      <div class="dm-nophoto" id="dmNoPhoto" hidden>No photos to show for this one — but the details are below.</div>
       <div class="dm-body">
         <div class="dm-tagrow" id="dmTagRow"></div>
         <h2 class="dm-title" id="dmTitle"></h2>
@@ -788,8 +801,43 @@
   /* ---- Activity detail modal (brief details + photos on tap) ---- */
   var wikiCache={};       // title -> {img,extract,url,title} | null
   var detailOpener=null;  // element to restore focus to on close
-  function bumpPx(src){   // request a slightly larger thumbnail than the API default
-    return src.replace(/\/(\d+)px-/, function(_,n){ return "/"+Math.min(Math.max(parseInt(n,10),640),1024)+"px-"; });
+  var COMMONS="https://commons.wikimedia.org/wiki/Special:FilePath/";
+  // A Wikimedia Commons file served by name (Special:FilePath follows redirects, so it
+  // survives re-uploads); ?width keeps it a sensible size. Only the filename is needed.
+  function fp(name){ return COMMONS+encodeURIComponent(name.replace(/ /g,"_"))+"?width=1000"; }
+  // Hand-picked lead photos, shown FIRST. Each entry is a Commons filename (or {f,cap}).
+  // Anything that doesn't resolve is dropped on the <img> error and the live Wikipedia
+  // fetch below fills the gallery, so this map is safe to extend freely.
+  var PHOTOS={
+    d1a1:["Central Park (New York) 03.jpg","Gapstow Bridge Centralpark.jpg"],
+    d1a2:["Rockefeller Center New York City.jpg","Top of the Rock Cropped.jpg"],
+    d2a1:["Statue of Liberty 7.jpg","Statue of Liberty, NY.jpg"],
+    d2a2:["National September 11 Memorial South Pool.jpg","One World Trade Center, New York City (2014).jpg"],
+    d3a1:["Metropolitan Museum of Art (The Met) - Central Park, NYC.jpg","Met Museum NY.jpg"],
+    d3a2:["Bethesda Fountain.jpg","Bow Bridge - Central Park.jpg"],
+    d4a1:["High Line 20th Street looking downtown.jpg","Chelsea Market Interior.jpg"],
+    d4a2:["Vessel (Hudson Yards) - panoramio.jpg","Hudson Yards, March 2019.jpg"],
+    d4m:["MetLife Stadium (Aug 2014).JPG"],
+    d5a1:["Brooklyn Bridge Manhattan.jpg","Manhattan Bridge from Dumbo.jpg"],
+    d5a2:["Brooklyn Bridge Park - panoramio.jpg"],
+    d6a1:["Grand Central Terminal Main Concourse Jan 2006.jpg","NYC Public Library Research Room Jan 2006.jpg"],
+    d6a2:["One Vanderbilt (51610839362).jpg"],
+    d7a1:["Washington Square Park Arch.jpg","Greenwich Village (48377068326).jpg"],
+    d7a2:["SoHo Cast Iron Historic District.jpg"],
+    id2:["American Museum of Natural History New York City.jpg"],
+    id8:["Little Island, Manhattan (51249160637).jpg"],
+    id9:["Staten Island Ferry boat John F. Kennedy.jpg"],
+    id11:["Times Square, New York City (HDR).jpg","1 Times Square at night.jpg"]
+  };
+  function curatedFor(it){
+    return (PHOTOS[it.id]||[]).map(function(c){
+      return (typeof c==="string") ? {src:fp(c),cap:it.title} : {src:fp(c.f),cap:c.cap||it.title};
+    });
+  }
+  // Normalised filename so a curated photo and the same file from the live fetch dedupe.
+  function keyOf(src){
+    try{ var s=src.split("?")[0]; var seg=decodeURIComponent(s.substring(s.lastIndexOf("/")+1)); return seg.replace(/^\d+px-/,"").toLowerCase(); }
+    catch(e){ return src; }
   }
   function wikiSummary(title){
     if(Object.prototype.hasOwnProperty.call(wikiCache,title)) return Promise.resolve(wikiCache[title]);
@@ -797,36 +845,88 @@
     return fetch(url).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(d){
       var out=null;
       if(d && d.type!=="disambiguation"){
-        var img=(d.thumbnail&&d.thumbnail.source)||(d.originalimage&&d.originalimage.source)||"";
-        out={ img:img?bumpPx(img):"", extract:d.extract||"",
+        // Use the article's own thumbnail, sized up only as far as the original allows
+        // (asking for more than the source width 404s — that was the broken-image bug).
+        var t=(d.thumbnail&&d.thumbnail.source)||"", ow=(d.originalimage&&d.originalimage.width)||0, img="";
+        if(t){ var target=ow?Math.min(900,ow):0; img=target?t.replace(/\/\d+px-/,"/"+target+"px-"):t; }
+        else if(d.originalimage&&d.originalimage.source){ img=d.originalimage.source; }
+        out={ img:img, extract:d.extract||"",
               url:(d.content_urls&&d.content_urls.desktop&&d.content_urls.desktop.page)||"",
               title:d.title||title };
       }
       wikiCache[title]=out; return out;
     }).catch(function(){ wikiCache[title]=null; return null; });
   }
-  function renderPhotos(box, results, token){
-    if(box.getAttribute("data-token")!==token) return; // a newer open superseded us
-    var seen={}, photos=[];
-    results.forEach(function(r){ if(r&&r.img&&!seen[r.img]){ seen[r.img]=1; photos.push(r); } });
-    photos=photos.slice(0,4);
-    if(!photos.length){ box.innerHTML='<div class="dm-nophoto">No photos to show for this one — but the details are below.</div>'; return; }
-    box.innerHTML=photos.map(function(p){
-      return '<figure class="dm-photo"><img loading="lazy" src="'+esc(p.img)+'" alt="'+esc(p.title)+'">'+
-             '<figcaption>'+esc(p.title)+' · Wikimedia</figcaption></figure>';
-    }).join("");
+
+  /* ---- Photo carousel ---- */
+  function carIndex(track){ return Math.round(track.scrollLeft/Math.max(1,track.clientWidth)); }
+  function carUpdate(box){
+    var track=box.querySelector(".dm-track"); if(!track) return;
+    var n=track.children.length, idx=carIndex(track), dots=box.querySelector(".dm-dots");
+    if(dots){
+      while(dots.children.length<n) dots.appendChild(document.createElement("i"));
+      while(dots.children.length>n) dots.removeChild(dots.lastChild);
+      Array.prototype.forEach.call(dots.children,function(d,i){ d.className=(i===idx)?"on":""; });
+    }
+    box.classList.toggle("single",n<=1);
+    var prev=box.querySelector(".dm-nav.prev"), next=box.querySelector(".dm-nav.next");
+    if(prev) prev.disabled=(idx<=0); if(next) next.disabled=(idx>=n-1);
+  }
+  function carBuild(box){
+    box.innerHTML='<div class="dm-track"></div>'+
+      '<button class="dm-nav prev" type="button" aria-label="Previous photo">‹</button>'+
+      '<button class="dm-nav next" type="button" aria-label="Next photo">›</button>'+
+      '<div class="dm-dots" aria-hidden="true"></div>';
+    box.classList.add("single");
+    var track=box.querySelector(".dm-track");
+    box.querySelector(".dm-nav.prev").addEventListener("click",function(){ track.scrollBy({left:-track.clientWidth,behavior:"smooth"}); });
+    box.querySelector(".dm-nav.next").addEventListener("click",function(){ track.scrollBy({left:track.clientWidth,behavior:"smooth"}); });
+    track.addEventListener("scroll",function(){ carUpdate(box); });
+    return track;
+  }
+  function finalizePhotos(box,token){
+    if(box.getAttribute("data-token")!==token||!box._fetchDone) return;
+    var track=box.querySelector(".dm-track"), real=0;
+    if(track) Array.prototype.forEach.call(track.children,function(c){ if(c.className.indexOf("dm-skel")<0) real++; });
+    var msg=document.getElementById("dmNoPhoto");
+    if(real===0){ box.hidden=true; if(msg) msg.hidden=false; }
+    else { if(msg) msg.hidden=true; carUpdate(box); }
+  }
+  function addSlide(box,token,src,cap){
+    if(box.getAttribute("data-token")!==token) return;
+    var track=box.querySelector(".dm-track"); if(!track) return;
+    var skel=track.querySelector(".dm-skel"); if(skel) track.removeChild(skel);
+    var fig=document.createElement("figure"); fig.className="dm-photo";
+    var img=document.createElement("img"); img.loading="lazy"; img.alt=cap||"";
+    img.addEventListener("error",function(){ if(fig.parentNode) fig.parentNode.removeChild(fig); finalizePhotos(box,token); carUpdate(box); });
+    img.addEventListener("load",function(){ carUpdate(box); });
+    fig.appendChild(img);
+    if(cap){ var c=document.createElement("figcaption"); c.textContent=cap; fig.appendChild(c); }
+    track.appendChild(fig);
+    img.src=src;
+    carUpdate(box);
   }
   function loadPhotos(it){
     var box=document.getElementById("dmPhotos"); if(!box) return;
+    var msg=document.getElementById("dmNoPhoto"); if(msg) msg.hidden=true;
+    box.hidden=false; box._fetchDone=false; box._keys={};
     var token=String(Date.now())+Math.random(); box.setAttribute("data-token",token);
+    var track=carBuild(box);
+    function take(src){ if(!src) return false; var k=keyOf(src); if(box._keys[k]) return false; box._keys[k]=1; return true; }
+
+    // 1) Curated photos first.
+    curatedFor(it).forEach(function(p){ if(track.children.length<6 && take(p.src)) addSlide(box,token,p.src,p.cap); });
+    // Skeleton placeholder only while we have nothing to show yet.
+    if(!track.children.length){ var sk=document.createElement("div"); sk.className="dm-photo dm-skel"; track.appendChild(sk); carUpdate(box); }
+
+    // 2) Live Wikipedia images as backup / extras.
     var titles=(WIKI[it.id]||[]).slice();
-    if(!titles.length && it.title) titles=[it.title.replace(/\s*[—–→·].*$/,"").trim()]; // best-effort for custom items
-    if(!titles.length){ box.innerHTML='<div class="dm-nophoto">No photos to show for this one — but the details are below.</div>'; return; }
-    box.innerHTML='<div class="dm-skel"><span></span><span></span><span></span></div>';
+    if(!titles.length && it.title) titles=[it.title.replace(/\s*[—–→·(].*$/,"").trim()];
     Promise.all(titles.map(wikiSummary)).then(function(results){
-      renderPhotos(box, results, token);
-      // surface a short Wikipedia blurb + link from the first article that has one
       if(box.getAttribute("data-token")!==token) return;
+      var sk2=track.querySelector(".dm-skel"); if(sk2&&results.some(function(r){return r&&r.img;})) track.removeChild(sk2);
+      results.forEach(function(r){ if(r&&r.img&&track.children.length<6&&take(r.img)) addSlide(box,token,r.img,r.title?r.title+" · Wikipedia":""); });
+      box._fetchDone=true; finalizePhotos(box,token);
       var first=null; for(var i=0;i<results.length;i++){ if(results[i]&&results[i].extract){ first=results[i]; break; } }
       var about=document.getElementById("dmAbout");
       if(first&&about){
@@ -868,7 +968,13 @@
     if(detailOpener&&detailOpener.focus){ try{ detailOpener.focus(); }catch(e){} }
     detailOpener=null;
   }
-  function onModalKey(e){ if(e.key==="Escape"){ e.preventDefault(); closeDetail(); } }
+  function onModalKey(e){
+    if(e.key==="Escape"){ e.preventDefault(); closeDetail(); return; }
+    if(e.key==="ArrowLeft"||e.key==="ArrowRight"){
+      var track=document.querySelector("#dmPhotos .dm-track"); if(!track||track.children.length<2) return;
+      e.preventDefault(); track.scrollBy({left:(e.key==="ArrowRight"?1:-1)*track.clientWidth,behavior:"smooth"});
+    }
+  }
   // Delegated taps: any [data-detail-id] inside host opens that activity's modal.
   function bindDetailDelegation(host){
     if(!host) return;
