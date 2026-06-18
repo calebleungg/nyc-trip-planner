@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root{
     --ink:#1A1C22; --ink-soft:#565C68; --paper:#ECEFF3; --card:#FFFFFF;
@@ -132,6 +134,17 @@
   .item-title{font-size:.91rem;font-weight:500;}
   .item-meta{font-family:"IBM Plex Mono",monospace;font-size:.59rem;letter-spacing:.03em;color:var(--ink-soft);text-transform:uppercase;}
   .sortable-ghost{opacity:.35;} .sortable-chosen{box-shadow:0 8px 20px rgba(26,28,34,.18);}
+  .item.custom{border-style:dashed;}
+  .item .del{grid-column:4;background:transparent;border:none;color:var(--ink-soft);font-size:1.1rem;line-height:1;cursor:pointer;padding:4px 6px;border-radius:5px;}
+  .item .del:hover{color:var(--nor);background:rgba(224,30,55,.08);}
+
+  /* Add-your-own form */
+  .add-form{display:flex;flex-wrap:wrap;gap:8px;background:var(--card);border:1px solid var(--hair);border-radius:8px;padding:12px 13px;margin-bottom:15px;}
+  .add-form .add-h{flex:1 1 100%;font-family:"IBM Plex Mono",monospace;font-size:.69rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:1px;}
+  .add-form input,.add-form select{font-family:"IBM Plex Sans",sans-serif;font-size:.88rem;padding:9px 10px;border:1px solid var(--hair);border-radius:6px;background:var(--paper);color:var(--ink);min-height:42px;}
+  .add-form input{flex:1 1 100%;}
+  .add-form select{flex:1 1 120px;min-width:0;}
+  .add-form .btn{flex:1 1 90px;}
 
   /* Map */
   #map{height:62vh;min-height:340px;width:100%;border:1px solid var(--hair);border-radius:8px;background:#EAEEF2;overflow:hidden;}
@@ -176,6 +189,13 @@
     @keyframes rise{to{opacity:1;transform:translateY(0);}}
   }
   .check:focus-visible,.btn:focus-visible,.tab:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  .add-form input:focus-visible,.add-form select:focus-visible{outline:2px solid var(--ink);outline-offset:1px;}
+  /* Timeline reflects planner: completed + custom markers */
+  .tl-done{opacity:.5;}
+  .tl-done .pick,.m-act.tl-done,.m-eat.tl-done{text-decoration:line-through;}
+  .tl-custom{font-family:"IBM Plex Mono",monospace;font-size:.55rem;letter-spacing:.06em;text-transform:uppercase;color:var(--sen);border:1px solid var(--sen);border-radius:3px;padding:1px 4px;margin-left:7px;vertical-align:1px;}
+  .m-act .tl-custom,.m-eat .tl-custom{color:#34c46f;border-color:#34c46f;}
+  .tl-empty{color:var(--ink-soft);font-size:.86rem;padding:6px 0 2px;}
 </style>
 </head>
 <body>
@@ -202,159 +222,11 @@
   <section class="panel" id="view-timeline" role="tabpanel" aria-labelledby="tab-timeline">
 
     <div class="sec-head"><span class="sec-num">A</span><span class="sec-title">The week at a glance</span></div>
-    <div class="week">
-      <div class="wk">
-        <div class="wk-top"><b>01</b> · Fri · Jun 19</div><div class="wk-th">Land easy</div>
-        <div class="wk-slot"><b>AM</b>Central Park</div><div class="wk-slot"><b>PM</b>Fifth Ave & Rock</div>
-        <div class="wk-eat">Bouchon · Keens</div>
-      </div>
-      <div class="wk">
-        <div class="wk-top"><b>02</b> · Sat · Jun 20</div><div class="wk-th">Harbour & old city</div>
-        <div class="wk-slot"><b>AM</b>Statue of Liberty</div><div class="wk-slot"><b>PM</b>9/11 & Wall St</div>
-        <div class="wk-eat">Black Fox · Dead Rabbit</div>
-      </div>
-      <div class="wk">
-        <div class="wk-top"><b>03</b> · Sun · Jun 21</div><div class="wk-th">Museum mile</div>
-        <div class="wk-slot"><b>AM</b>The Met</div><div class="wk-slot"><b>PM</b>Central Park lake</div>
-        <div class="wk-eat">Bagels · La Pecora Bianca</div>
-      </div>
-      <div class="wk match">
-        <div class="wk-band"></div>
-        <div class="wk-top"><b>04</b> · Mon · Jun 22</div><div class="wk-th">Match day</div>
-        <div class="wk-slot"><b>AM</b>Chelsea Mkt & High Line</div><div class="wk-slot"><b>PM</b>Hudson Yards → Penn</div>
-        <div class="wk-match">NOR v SEN · 8PM · METLIFE</div>
-        <div class="wk-eat">Chelsea Mkt · Jongro BBQ</div>
-      </div>
-      <div class="wk">
-        <div class="wk-top"><b>05</b> · Tue · Jun 23</div><div class="wk-th">Brooklyn & a fan zone</div>
-        <div class="wk-slot"><b>AM</b>Brooklyn Bridge</div><div class="wk-slot"><b>PM</b>adidas fan zone</div>
-        <div class="wk-eat">Time Out Mkt · Juliana's</div>
-      </div>
-      <div class="wk">
-        <div class="wk-top"><b>06</b> · Wed · Jun 24</div><div class="wk-th">Heights & lights</div>
-        <div class="wk-slot"><b>AM</b>Grand Central</div><div class="wk-slot"><b>PM</b>SUMMIT at dusk</div>
-        <div class="wk-eat">Oyster Bar · Los Tacos</div>
-      </div>
-      <div class="wk">
-        <div class="wk-top"><b>07</b> · Thu · Jun 25</div><div class="wk-th">Village wind-down</div>
-        <div class="wk-slot"><b>AM</b>Greenwich Village</div><div class="wk-slot"><b>PM</b>SoHo</div>
-        <div class="wk-eat">Jack's Wife Freda · Balthazar</div>
-      </div>
-    </div>
+    <div class="week" id="weekGlance"></div>
 
     <div class="sec-head"><span class="sec-num">B</span><span class="sec-title">Day by day</span></div>
-    <p class="sec-sub">Morning and afternoon, with a food pick and a quick tip for each.</p>
-    <ol class="stops">
-      <li class="stop">
-        <div class="rail"><span class="bullet">01</span></div>
-        <article class="card" tabindex="0">
-          <div class="st-head"><span class="st-day">Day 01</span><span class="st-date">Fri · Jun 19 · Land easy</span></div>
-          <div class="slot"><div class="slot-tag">AM</div><div>
-            <p class="act"><span class="pick">Central Park — south-end amble.</span> The Pond, Gapstow Bridge, Sheep Meadow and the Mall.<span class="hint">Gapstow Bridge has the classic skyline-over-the-water view. Keep landing day gentle — it's all a short walk from Park Lane.</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">Bouchon Bakery</span> <span class="area">· Columbus Circle.</span><span class="hint">The 3rd-floor café overlooks the park — go for the croissants and the view.</span></p>
-          </div></div>
-          <div class="slot"><div class="slot-tag">PM</div><div>
-            <p class="act"><span class="pick">Fifth Avenue & Rockefeller Center.</span> An easy stroll past St Patrick's and the flagship shops.<span class="hint">If you've got the legs, book Top of the Rock for ~1 hr before sunset to catch day, dusk and the lights.</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">Keens Steakhouse</span> <span class="area">· Midtown.</span><span class="hint">Book ahead, or walk into the pub room for the same menu without a reservation — the mutton chop is the move.</span></p>
-          </div></div>
-        </article>
-      </li>
-
-      <li class="stop">
-        <div class="rail"><span class="bullet">02</span></div>
-        <article class="card" tabindex="0">
-          <div class="st-head"><span class="st-day">Day 02</span><span class="st-date">Sat · Jun 20 · Harbour & the old city</span></div>
-          <div class="slot"><div class="slot-tag">AM</div><div>
-            <p class="act"><span class="pick">Statue of Liberty & Ellis Island.</span> Earliest ferry from Battery Park.<span class="hint">Book online and take the first slot to beat heat and queues; Ellis Island's immigration museum is the real depth — don't skip it.</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">Black Fox Coffee</span> <span class="area">· FiDi.</span><span class="hint">Top drip coffee and a solid breakfast a few blocks from the terminal — fuel up before boarding.</span></p>
-          </div></div>
-          <div class="slot"><div class="slot-tag">PM</div><div>
-            <p class="act"><span class="pick">9/11 Memorial & Museum,</span> then Wall Street, the Charging Bull and the NYSE.<span class="hint">Allow ~2 hrs; much of it is photo-free and quietly intense. Short on time? The free Staten Island Ferry gives a Liberty pass-by so you can come straight here.</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">The Dead Rabbit</span> <span class="area">· FiDi.</span><span class="hint">Reserve the upstairs parlour for a calmer sit-down; the Irish coffee is the signature.</span></p>
-          </div></div>
-        </article>
-      </li>
-
-      <li class="stop">
-        <div class="rail"><span class="bullet">03</span></div>
-        <article class="card" tabindex="0">
-          <div class="st-head"><span class="st-day">Day 03</span><span class="st-date">Sun · Jun 21 · Museum mile</span></div>
-          <div class="slot"><div class="slot-tag">AM</div><div>
-            <p class="act"><span class="pick">The Met.</span> Arrive at the 10am opening.<span class="hint">Beeline to your top wing before the crowds — Egyptian, European Paintings, the rooftop. Tickets ~US$30, book online. (Closed Wednesdays, which is why it's on Sunday.)</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">Tompkins Square Bagels</span> <span class="area">· Upper East Side.</span><span class="hint">A proper New York bagel — get it with lox and a schmear for the full breakfast.</span></p>
-          </div></div>
-          <div class="slot"><div class="slot-tag">PM</div><div>
-            <p class="act"><span class="pick">Central Park's lake,</span> from the Met's back door — Bethesda Fountain, Bow Bridge, rowboats at Loeb Boathouse.<span class="hint">Exit the Met west straight into the park. Prefer indoors? The Natural History Museum is a 10-min walk across.</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">La Pecora Bianca</span> <span class="area">· Upper East Side.</span><span class="hint">Bright modern Italian with outdoor tables — the whipped ricotta toast and fresh pasta. A relaxed late lunch.</span></p>
-          </div></div>
-        </article>
-      </li>
-
-      <li class="stop match">
-        <div class="rail"><span class="bullet">04</span></div>
-        <article class="card" tabindex="0">
-          <div class="band"></div>
-          <div class="match-body">
-            <div class="match-tag"><span>Day 04 · Mon · Jun 22</span><span>Match day</span></div>
-            <div class="m-slot"><div class="m-slot-tag">AM</div><div>
-              <p class="m-act">Chelsea Market + the High Line — walk the elevated park north toward Hudson Yards.<span class="m-hint">Chelsea Market is a food hall in an old Nabisco factory; the High Line entrance is right beside it.</span></p>
-              <p class="m-eat"><span class="m-eat-l">Eat</span>Chelsea Market food hall<span class="m-hint">Graze — the original Los Tacos No.1 stand, a lobster roll at The Lobster Place, or Friedman's for brunch.</span></p>
-            </div></div>
-            <div class="m-slot"><div class="m-slot-tag">PM</div><div>
-              <p class="m-act">Hudson Yards — the Edge sky deck or the Vessel, then to Penn Station.<span class="m-hint">Hudson Yards is right by Penn, so you're perfectly placed for the train. Keep the afternoon easy — big night ahead.</span></p>
-              <p class="m-eat"><span class="m-eat-l">Eat</span>Jongro BBQ · Koreatown<span class="m-hint">Grill-at-the-table KBBQ, two blocks from Penn — eat well, stadium food lines are long.</span></p>
-            </div></div>
-            <div class="fixture"><span class="team-nor">Norway</span><span class="v">v</span><span class="team-sen">Senegal</span></div>
-            <div class="kick"><span>KICKOFF <b>20:00</b></span><span>GATES <b>17:00</b></span><span><b>MetLife Stadium</b>, NJ</span></div>
-            <div class="ticket"><div class="ticket-h">Your run to the stadium</div><p>NJ Transit from Penn — depart in your <b>17:00–18:00</b> window. Wristband at <b>Zone A/B</b>; clear-bag policy at the gate.</p></div>
-          </div>
-        </article>
-      </li>
-      <li class="stop">
-        <div class="rail"><span class="bullet">05</span></div>
-        <article class="card" tabindex="0">
-          <div class="st-head"><span class="st-day">Day 05</span><span class="st-date">Tue · Jun 23 · Brooklyn & a fan zone</span></div>
-          <div class="slot"><div class="slot-tag">AM</div><div>
-            <p class="act"><span class="pick">Walk the Brooklyn Bridge</span> from the Manhattan side into DUMBO.<span class="hint">Go before ~9–10am to beat crowds and heat; enter from Manhattan so the skyline's ahead of you, and stay on the upper pedestrian path.</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">Time Out Market</span> <span class="area">· DUMBO.</span><span class="hint">Dozens of vendors plus a rooftop terrace with the classic Manhattan-Bridge-and-skyline view.</span></p>
-          </div></div>
-          <div class="slot"><div class="slot-tag">PM</div><div>
-            <p class="act"><span class="pick">DUMBO + the adidas "Home of Soccer" fan zone</span> at Brooklyn Bridge Park.<span class="hint">Free with a reservation (book ~24h ahead): screens, a beer garden and a 3v3 pitch, 12–10pm. Time it to whatever match is on.</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">Juliana's</span> <span class="area">· DUMBO.</span><span class="hint">Coal-oven pizza under the bridge — whole pies only (no slices); the classic Margherita, and expect a short line.</span></p>
-          </div></div>
-        </article>
-      </li>
-
-      <li class="stop">
-        <div class="rail"><span class="bullet">06</span></div>
-        <article class="card" tabindex="0">
-          <div class="st-head"><span class="st-day">Day 06</span><span class="st-date">Wed · Jun 24 · Heights & lights</span></div>
-          <div class="slot"><div class="slot-tag">AM</div><div>
-            <p class="act"><span class="pick">Grand Central + the New York Public Library + Bryant Park.</span><span class="hint">Don't miss Grand Central's ceiling and the Whispering Gallery, then the NYPL's Rose Reading Room a block away — all free.</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">Grand Central Oyster Bar</span> <span class="area">· inside the terminal.</span><span class="hint">A NY institution — oysters, chowder and the pan roast. Opens 11:30 and closed weekends, so Wednesday's ideal.</span></p>
-          </div></div>
-          <div class="slot"><div class="slot-tag">PM</div><div>
-            <p class="act"><span class="pick">SUMMIT One Vanderbilt</span> — the mirrored-glass observation deck above Grand Central, late afternoon into dusk.<span class="hint">Go ~1–1.5 hrs before sunset for day, golden hour and the lights; book a timed ticket. The glass Ascent elevator is a fun add-on.</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">Los Tacos No.1</span> <span class="area">· Times Square.</span><span class="hint">Counter-only, no seats, but elite — the adobada (al pastor) is the pick. Perfect before a Broadway show.</span></p>
-          </div></div>
-        </article>
-      </li>
-
-      <li class="stop">
-        <div class="rail"><span class="bullet">07</span></div>
-        <article class="card" tabindex="0">
-          <div class="st-head"><span class="st-day">Day 07</span><span class="st-date">Thu · Jun 25 · Village wind-down</span></div>
-          <div class="slot"><div class="slot-tag">AM</div><div>
-            <p class="act"><span class="pick">Greenwich Village & Washington Square Park,</span> then the West Village brownstone streets — Bedford, Grove, Commerce.<span class="hint">Some of the prettiest, most-filmed blocks in the city — a gentle final-day wander.</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">Jack's Wife Freda</span> <span class="area">· West Village.</span><span class="hint">No reservations for small parties; the green shakshuka and rosewater waffle are the favourites. A short wait is normal.</span></p>
-          </div></div>
-          <div class="slot"><div class="slot-tag">PM</div><div>
-            <p class="act"><span class="pick">SoHo</span> — cast-iron architecture and shopping (Broadway, Prince, Greene St), into Nolita and Little Italy.<span class="hint">Greene and Mercer have the best cast-iron facades — great for a last wander and gifts.</span></p>
-            <p class="eat"><span class="eat-l">Eat</span><span class="pick">Balthazar</span> <span class="area">· SoHo.</span><span class="hint">Grand French brasserie — the bread basket and steak frites. Book ahead on Resy, or sit at the bar (bakery next door for pastries to go).</span></p>
-          </div></div>
-        </article>
-      </li>
-    </ol>
+    <p class="sec-sub">This mirrors your planner — rearrange or add activities in the Planner tab and they show up here.</p>
+    <ol class="stops" id="dayByDay"></ol>
     <p class="sec-sub" style="margin-top:8px">Tip: keep your flight time in mind on Day 07 — the subway runs straight back up to Midtown when you need it.</p>
 
     <div class="sec-head"><span class="sec-num">C</span><span class="sec-title">Evening options</span></div>
@@ -376,9 +248,31 @@
     <div class="sec-head"><span class="sec-num">D</span><span class="sec-title">Your board</span></div>
     <p class="sec-sub">Everything suggested, plus extra ideas. Rearrange it into your own plan and tick things off as you go.</p>
     <div class="board-tools">
-      <span class="hint-txt">Drag the <b>⋮⋮</b> handle to move an item between days · tap the circle to mark it done · changes are saved as you go.</span>
+      <span class="hint-txt">Drag the <b>⋮⋮</b> handle to move an item between days · tap the circle to mark it done · add your own below · changes are saved as you go and mirrored in the Timeline.</span>
       <button class="btn" id="resetBtn" type="button">Reset board</button>
     </div>
+    <form class="add-form" id="addForm" autocomplete="off">
+      <span class="add-h">Add your own activity</span>
+      <input id="addTitle" type="text" placeholder="What do you want to do? (e.g. Vessel rooftop)" maxlength="80" required>
+      <input id="addNote" type="text" placeholder="A note or tip (optional)" maxlength="160">
+      <select id="addTag" aria-label="Type">
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+        <option value="Eat">Eat</option>
+        <option value="Idea" selected>Idea</option>
+      </select>
+      <select id="addLane" aria-label="Day">
+        <option value="d1">Fri · Jun 19</option>
+        <option value="d2">Sat · Jun 20</option>
+        <option value="d3">Sun · Jun 21</option>
+        <option value="d4">Mon · Jun 22</option>
+        <option value="d5">Tue · Jun 23</option>
+        <option value="d6">Wed · Jun 24</option>
+        <option value="d7">Thu · Jun 25</option>
+        <option value="ideas" selected>More ideas</option>
+      </select>
+      <button class="btn" type="submit">Add</button>
+    </form>
     <div class="lane"><div class="lane-head">Fri · Jun 19</div><ul class="lane-list" id="lane-d1"></ul></div>
     <div class="lane"><div class="lane-head">Sat · Jun 20</div><ul class="lane-list" id="lane-d2"></ul></div>
     <div class="lane"><div class="lane-head">Sun · Jun 21</div><ul class="lane-list" id="lane-d3"></ul></div>
@@ -396,7 +290,7 @@
     <div id="map"></div>
     <div class="mapcap" id="mapCap">Tap a point for its name.</div>
     <div class="legend" id="legend"></div>
-    <p class="maphint">A stylised map that always renders — your hotel and every stop, placed by their real coordinates and coloured by day. Most days cluster around Midtown; the Monday match sits west across the Hudson in New Jersey. Full list below.</p>
+    <p class="maphint">An interactive map (OpenStreetMap via Leaflet) — your hotel and every stop, placed by their real coordinates and coloured by day. Drag to pan, pinch or use the +/− to zoom, and tap a pin for details. Most days cluster around Midtown; the Monday match sits west across the Hudson in New Jersey. Full list below.</p>
     <div class="places" id="placeList"></div>
   </section>
 
@@ -415,48 +309,61 @@
   "use strict";
   var DAY_COLORS={1:"#E4572E",2:"#2E86AB",3:"#6A4C93",4:"#E01E37",5:"#1B998B",6:"#C7417B",7:"#4C956C",hotel:"#1A1C22",idea:"#8A6D3B"};
   var LANES=[{id:"d1"},{id:"d2"},{id:"d3"},{id:"d4"},{id:"d5"},{id:"d6"},{id:"d7"},{id:"ideas"}];
+  // Day metadata for the timeline. Ideas live only on the board, not the day-by-day.
+  var DAYS=[
+    {id:"d1",n:"01",dow:"Fri",date:"Jun 19",theme:"Land easy"},
+    {id:"d2",n:"02",dow:"Sat",date:"Jun 20",theme:"Harbour & the old city"},
+    {id:"d3",n:"03",dow:"Sun",date:"Jun 21",theme:"Museum mile"},
+    {id:"d4",n:"04",dow:"Mon",date:"Jun 22",theme:"Match day"},
+    {id:"d5",n:"05",dow:"Tue",date:"Jun 23",theme:"Brooklyn & a fan zone"},
+    {id:"d6",n:"06",dow:"Wed",date:"Jun 24",theme:"Heights & lights"},
+    {id:"d7",n:"07",dow:"Thu",date:"Jun 25",theme:"Village wind-down"}
+  ];
+  var LANE_LABEL={d1:"Fri · Jun 19",d2:"Sat · Jun 20",d3:"Sun · Jun 21",d4:"Mon · Jun 22",d5:"Tue · Jun 23",d6:"Wed · Jun 24",d7:"Thu · Jun 25",ideas:"More ideas"};
 
+  // Single source of truth for both the Planner board and the Timeline.
+  // `note` is the editorial tip shown on the timeline; `match` carries fixture detail.
   var ITEMS=[
-    {id:"d1a1",lane:"d1",tag:"AM",area:"Central Park",title:"Central Park — south-end amble"},
-    {id:"d1e1",lane:"d1",tag:"Eat",area:"Columbus Circle",title:"Bouchon Bakery"},
-    {id:"d1a2",lane:"d1",tag:"PM",area:"Midtown",title:"Fifth Ave & Rockefeller (Top of the Rock)"},
-    {id:"d1e2",lane:"d1",tag:"Eat",area:"Midtown",title:"Keens Steakhouse"},
-    {id:"d2a1",lane:"d2",tag:"AM",area:"Battery Park",title:"Statue of Liberty & Ellis Island"},
-    {id:"d2e1",lane:"d2",tag:"Eat",area:"FiDi",title:"Black Fox Coffee"},
-    {id:"d2a2",lane:"d2",tag:"PM",area:"FiDi",title:"9/11 Memorial & Museum + Wall St"},
-    {id:"d2e2",lane:"d2",tag:"Eat",area:"FiDi",title:"The Dead Rabbit"},
-    {id:"d3a1",lane:"d3",tag:"AM",area:"Upper East Side",title:"The Met"},
-    {id:"d3e1",lane:"d3",tag:"Eat",area:"Upper East Side",title:"Tompkins Square Bagels"},
-    {id:"d3a2",lane:"d3",tag:"PM",area:"Central Park",title:"Central Park lake & rowboats"},
-    {id:"d3e2",lane:"d3",tag:"Eat",area:"Upper East Side",title:"La Pecora Bianca"},
-    {id:"d4a1",lane:"d4",tag:"AM",area:"Chelsea",title:"Chelsea Market + the High Line"},
-    {id:"d4e1",lane:"d4",tag:"Eat",area:"Chelsea",title:"Chelsea Market food hall"},
-    {id:"d4a2",lane:"d4",tag:"PM",area:"Hudson Yards",title:"Hudson Yards — Edge / Vessel"},
-    {id:"d4e2",lane:"d4",tag:"Eat",area:"Koreatown",title:"Jongro BBQ"},
-    {id:"d4m",lane:"d4",tag:"Match",area:"MetLife",title:"Norway v Senegal — 8pm kickoff"},
-    {id:"d5a1",lane:"d5",tag:"AM",area:"DUMBO",title:"Walk the Brooklyn Bridge → DUMBO"},
-    {id:"d5e1",lane:"d5",tag:"Eat",area:"DUMBO",title:"Time Out Market"},
-    {id:"d5a2",lane:"d5",tag:"PM",area:"Brooklyn Bridge Park",title:"adidas fan zone + DUMBO"},
-    {id:"d5e2",lane:"d5",tag:"Eat",area:"DUMBO",title:"Juliana's"},
-    {id:"d6a1",lane:"d6",tag:"AM",area:"Midtown",title:"Grand Central + NYPL + Bryant Park"},
-    {id:"d6e1",lane:"d6",tag:"Eat",area:"Grand Central",title:"Grand Central Oyster Bar"},
-    {id:"d6a2",lane:"d6",tag:"PM",area:"Midtown",title:"SUMMIT One Vanderbilt (dusk)"},
-    {id:"d6e2",lane:"d6",tag:"Eat",area:"Times Square",title:"Los Tacos No.1"},
-    {id:"d7a1",lane:"d7",tag:"AM",area:"Greenwich Village",title:"Greenwich Village & Washington Square"},
-    {id:"d7e1",lane:"d7",tag:"Eat",area:"West Village",title:"Jack's Wife Freda"},
-    {id:"d7a2",lane:"d7",tag:"PM",area:"SoHo",title:"SoHo — cast-iron streets & shopping"},
-    {id:"d7e2",lane:"d7",tag:"Eat",area:"SoHo",title:"Balthazar"},
-    {id:"id1",lane:"ideas",tag:"Idea",area:"LES",title:"Katz's Delicatessen — pastrami"},
-    {id:"id2",lane:"ideas",tag:"Idea",area:"UWS",title:"Natural History Museum"},
-    {id:"id3",lane:"ideas",tag:"Idea",area:"UWS",title:"Levain Bakery — cookies"},
-    {id:"id4",lane:"ideas",tag:"Idea",area:"Williamsburg",title:"Peter Luger — steak (evening)"},
-    {id:"id5",lane:"ideas",tag:"Idea",area:"Village",title:"Comedy Cellar — stand-up"},
-    {id:"id6",lane:"ideas",tag:"Idea",area:"Village",title:"Village Vanguard — jazz"},
-    {id:"id7",lane:"ideas",tag:"Idea",area:"Theater District",title:"Broadway show"},
-    {id:"id8",lane:"ideas",tag:"Idea",area:"Hudson River",title:"Little Island"},
-    {id:"id9",lane:"ideas",tag:"Idea",area:"Harbour",title:"Staten Island Ferry (free)"},
-    {id:"id10",lane:"ideas",tag:"Idea",area:"Midtown",title:"Rooftop bar — sunset drinks"},
-    {id:"id11",lane:"ideas",tag:"Idea",area:"Times Square",title:"Times Square after dark"}
+    {id:"d1a1",lane:"d1",tag:"AM",area:"Central Park",title:"Central Park — south-end amble",note:"The Pond, Gapstow Bridge, Sheep Meadow and the Mall. Gapstow Bridge has the classic skyline-over-the-water view; keep landing day gentle — it's all a short walk from Park Lane."},
+    {id:"d1e1",lane:"d1",tag:"Eat",area:"Columbus Circle",title:"Bouchon Bakery",note:"The 3rd-floor café overlooks the park — go for the croissants and the view."},
+    {id:"d1a2",lane:"d1",tag:"PM",area:"Midtown",title:"Fifth Ave & Rockefeller (Top of the Rock)",note:"An easy stroll past St Patrick's and the flagship shops. Book Top of the Rock for ~1 hr before sunset to catch day, dusk and the lights."},
+    {id:"d1e2",lane:"d1",tag:"Eat",area:"Midtown",title:"Keens Steakhouse",note:"Book ahead, or walk into the pub room for the same menu without a reservation — the mutton chop is the move."},
+    {id:"d2a1",lane:"d2",tag:"AM",area:"Battery Park",title:"Statue of Liberty & Ellis Island",note:"Earliest ferry from Battery Park. Book online and take the first slot to beat heat and queues; Ellis Island's immigration museum is the real depth — don't skip it."},
+    {id:"d2e1",lane:"d2",tag:"Eat",area:"FiDi",title:"Black Fox Coffee",note:"Top drip coffee and a solid breakfast a few blocks from the terminal — fuel up before boarding."},
+    {id:"d2a2",lane:"d2",tag:"PM",area:"FiDi",title:"9/11 Memorial & Museum + Wall St",note:"Then Wall Street, the Charging Bull and the NYSE. Allow ~2 hrs; much of it is photo-free and quietly intense. Short on time? The free Staten Island Ferry gives a Liberty pass-by."},
+    {id:"d2e2",lane:"d2",tag:"Eat",area:"FiDi",title:"The Dead Rabbit",note:"Reserve the upstairs parlour for a calmer sit-down; the Irish coffee is the signature."},
+    {id:"d3a1",lane:"d3",tag:"AM",area:"Upper East Side",title:"The Met",note:"Arrive at the 10am opening. Beeline to your top wing before the crowds — Egyptian, European Paintings, the rooftop. Tickets ~US$30, book online. (Closed Wednesdays.)"},
+    {id:"d3e1",lane:"d3",tag:"Eat",area:"Upper East Side",title:"Tompkins Square Bagels",note:"A proper New York bagel — get it with lox and a schmear for the full breakfast."},
+    {id:"d3a2",lane:"d3",tag:"PM",area:"Central Park",title:"Central Park lake & rowboats",note:"From the Met's back door — Bethesda Fountain, Bow Bridge, rowboats at Loeb Boathouse. Prefer indoors? The Natural History Museum is a 10-min walk across."},
+    {id:"d3e2",lane:"d3",tag:"Eat",area:"Upper East Side",title:"La Pecora Bianca",note:"Bright modern Italian with outdoor tables — the whipped ricotta toast and fresh pasta. A relaxed late lunch."},
+    {id:"d4a1",lane:"d4",tag:"AM",area:"Chelsea",title:"Chelsea Market + the High Line",note:"Walk the elevated park north toward Hudson Yards. Chelsea Market is a food hall in an old Nabisco factory; the High Line entrance is right beside it."},
+    {id:"d4e1",lane:"d4",tag:"Eat",area:"Chelsea",title:"Chelsea Market food hall",note:"Graze — the original Los Tacos No.1 stand, a lobster roll at The Lobster Place, or Friedman's for brunch."},
+    {id:"d4a2",lane:"d4",tag:"PM",area:"Hudson Yards",title:"Hudson Yards — Edge / Vessel",note:"The Edge sky deck or the Vessel, then to Penn Station. Keep the afternoon easy — big night ahead."},
+    {id:"d4e2",lane:"d4",tag:"Eat",area:"Koreatown",title:"Jongro BBQ",note:"Grill-at-the-table KBBQ, two blocks from Penn — eat well, stadium food lines are long."},
+    {id:"d4m",lane:"d4",tag:"Match",area:"MetLife",title:"Norway v Senegal",match:{home:"Norway",away:"Senegal",kick:"20:00",gates:"17:00",venue:"MetLife Stadium, NJ",ticket:"NJ Transit from Penn — depart in your 17:00–18:00 window. Wristband at Zone A/B; clear-bag policy at the gate."}},
+    {id:"d5a1",lane:"d5",tag:"AM",area:"DUMBO",title:"Walk the Brooklyn Bridge → DUMBO",note:"From the Manhattan side into DUMBO. Go before ~9–10am to beat crowds and heat; enter from Manhattan so the skyline's ahead of you, and stay on the upper path."},
+    {id:"d5e1",lane:"d5",tag:"Eat",area:"DUMBO",title:"Time Out Market",note:"Dozens of vendors plus a rooftop terrace with the classic Manhattan-Bridge-and-skyline view."},
+    {id:"d5a2",lane:"d5",tag:"PM",area:"Brooklyn Bridge Park",title:"adidas fan zone + DUMBO",note:"Free with a reservation (book ~24h ahead): screens, a beer garden and a 3v3 pitch, 12–10pm. Time it to whatever match is on."},
+    {id:"d5e2",lane:"d5",tag:"Eat",area:"DUMBO",title:"Juliana's",note:"Coal-oven pizza under the bridge — whole pies only (no slices); the classic Margherita, and expect a short line."},
+    {id:"d6a1",lane:"d6",tag:"AM",area:"Midtown",title:"Grand Central + NYPL + Bryant Park",note:"Don't miss Grand Central's ceiling and the Whispering Gallery, then the NYPL's Rose Reading Room a block away — all free."},
+    {id:"d6e1",lane:"d6",tag:"Eat",area:"Grand Central",title:"Grand Central Oyster Bar",note:"A NY institution — oysters, chowder and the pan roast. Opens 11:30 and closed weekends, so Wednesday's ideal."},
+    {id:"d6a2",lane:"d6",tag:"PM",area:"Midtown",title:"SUMMIT One Vanderbilt (dusk)",note:"The mirrored-glass observation deck above Grand Central, late afternoon into dusk. Go ~1–1.5 hrs before sunset; book a timed ticket."},
+    {id:"d6e2",lane:"d6",tag:"Eat",area:"Times Square",title:"Los Tacos No.1",note:"Counter-only, no seats, but elite — the adobada (al pastor) is the pick. Perfect before a Broadway show."},
+    {id:"d7a1",lane:"d7",tag:"AM",area:"Greenwich Village",title:"Greenwich Village & Washington Square",note:"Then the West Village brownstone streets — Bedford, Grove, Commerce. Some of the prettiest, most-filmed blocks in the city."},
+    {id:"d7e1",lane:"d7",tag:"Eat",area:"West Village",title:"Jack's Wife Freda",note:"No reservations for small parties; the green shakshuka and rosewater waffle are the favourites. A short wait is normal."},
+    {id:"d7a2",lane:"d7",tag:"PM",area:"SoHo",title:"SoHo — cast-iron streets & shopping",note:"Cast-iron architecture and shopping (Broadway, Prince, Greene St), into Nolita and Little Italy."},
+    {id:"d7e2",lane:"d7",tag:"Eat",area:"SoHo",title:"Balthazar",note:"Grand French brasserie — the bread basket and steak frites. Book ahead on Resy, or sit at the bar."},
+    {id:"id1",lane:"ideas",tag:"Idea",area:"LES",title:"Katz's Delicatessen — pastrami",note:"Pastrami on rye, open late — grab a ticket at the door and tip your cutter."},
+    {id:"id2",lane:"ideas",tag:"Idea",area:"UWS",title:"Natural History Museum",note:"A 10-min walk across the park from the Met — great rainy-day backup."},
+    {id:"id3",lane:"ideas",tag:"Idea",area:"UWS",title:"Levain Bakery — cookies",note:"Famous half-pound cookies; the chocolate-chip walnut is the classic."},
+    {id:"id4",lane:"ideas",tag:"Idea",area:"Williamsburg",title:"Peter Luger — steak (evening)",note:"Old-school dry-aged steak — book well ahead; order one size down."},
+    {id:"id5",lane:"ideas",tag:"Idea",area:"Village",title:"Comedy Cellar — stand-up",note:"Legendary tiny basement; reserve ahead, two-item minimum, surprise drop-ins common."},
+    {id:"id6",lane:"ideas",tag:"Idea",area:"Village",title:"Village Vanguard — jazz",note:"Two sets a night — arrive early for a good seat in the iconic basement room."},
+    {id:"id7",lane:"ideas",tag:"Idea",area:"Theater District",title:"Broadway show",note:"Same-day discounts at the TKTS booth, or try the official rush / lottery apps."},
+    {id:"id8",lane:"ideas",tag:"Idea",area:"Hudson River",title:"Little Island",note:"A free floating park on the Hudson at W13th — quick and lovely."},
+    {id:"id9",lane:"ideas",tag:"Idea",area:"Harbour",title:"Staten Island Ferry (free)",note:"Free round trip with a Statue of Liberty pass-by — great at sunset."},
+    {id:"id10",lane:"ideas",tag:"Idea",area:"Midtown",title:"Rooftop bar — sunset drinks",note:"Plenty of skyline rooftops a short walk from the hotel — golden hour is prime."},
+    {id:"id11",lane:"ideas",tag:"Idea",area:"Times Square",title:"Times Square after dark",note:"Pure New York at night — bright, loud and worth one look."}
   ];
 
   var MAP_PLACES=[
@@ -495,26 +402,44 @@
     {name:"Peter Luger",area:"Idea / evening · Williamsburg",lat:40.7098774,lng:-73.9625052,day:"idea"}
   ];
 
-  var STORE_KEY="nyc-trip-board-v2";
+  var STORE_KEY="nyc-trip-board-v3";
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
   function laneList(id){return document.getElementById("lane-"+id);}
 
+  // id -> item lookup (includes user-added items); the timeline renders from this.
+  var ITEM_BY_ID={}; ITEMS.forEach(function(it){ITEM_BY_ID[it.id]=it;});
+  var CUSTOM=[];            // user-added items, persisted so they survive reloads
+  var timelineDirty=true;   // re-render the timeline lazily when it's next shown
+
   function makeItem(it,done){
     var li=document.createElement("li");
-    li.className="item"+(done?" done":"")+(it.tag==="Match"?" match":"");
+    li.className="item"+(done?" done":"")+(it.tag==="Match"?" match":"")+(it.custom?" custom":"");
     li.setAttribute("data-id",it.id);
+    if(it.custom) li.style.gridTemplateColumns="22px 26px 1fr auto";
     var drag=document.createElement("span"); drag.className="drag"; drag.setAttribute("aria-hidden","true"); drag.textContent="\u22EE\u22EE";
     var btn=document.createElement("button"); btn.type="button"; btn.className="check";
     btn.setAttribute("aria-label","Mark done: "+it.title); btn.setAttribute("aria-pressed",done?"true":"false"); btn.textContent="\u2713";
     var main=document.createElement("div"); main.className="item-main";
     var t=document.createElement("div"); t.className="item-title"; t.textContent=it.title;
-    var m=document.createElement("div"); m.className="item-meta"; m.textContent=it.tag+" \u00b7 "+it.area;
+    var m=document.createElement("div"); m.className="item-meta"; m.textContent=it.area?(it.tag+" \u00b7 "+it.area):it.tag;
     main.appendChild(t); main.appendChild(m);
     btn.addEventListener("click",function(){toggle(li,btn);});
     li.appendChild(drag); li.appendChild(btn); li.appendChild(main);
+    if(it.custom){
+      var del=document.createElement("button"); del.type="button"; del.className="del";
+      del.setAttribute("aria-label","Remove: "+it.title); del.textContent="\u00D7";
+      del.addEventListener("click",function(){removeCustom(it,li);});
+      li.appendChild(del);
+    }
     return li;
   }
-  function toggle(li,btn){var on=li.classList.toggle("done"); btn.setAttribute("aria-pressed",on?"true":"false"); persist();}
+  function toggle(li,btn){var on=li.classList.toggle("done"); btn.setAttribute("aria-pressed",on?"true":"false"); changed();}
+  function removeCustom(it,li){
+    if(li&&li.parentNode) li.parentNode.removeChild(li);
+    CUSTOM=CUSTOM.filter(function(x){return x.id!==it.id;});
+    delete ITEM_BY_ID[it.id];
+    changed();
+  }
 
   function renderDefault(){
     LANES.forEach(function(l){var ul=laneList(l.id); if(ul) ul.innerHTML="";});
@@ -525,7 +450,8 @@
     LANES.forEach(function(l){var ul=laneList(l.id); if(!ul) return;
       order[l.id]=Array.prototype.slice.call(ul.querySelectorAll(".item")).map(function(el){return el.getAttribute("data-id");});});
     Array.prototype.forEach.call(document.querySelectorAll("#view-planner .item.done"),function(el){done[el.getAttribute("data-id")]=true;});
-    return {order:order,done:done};
+    var custom=CUSTOM.map(function(it){return {id:it.id,lane:it.lane,tag:it.tag,area:it.area||"",title:it.title,note:it.note||""};});
+    return {order:order,done:done,custom:custom};
   }
   function applyState(state){
     if(!state||!state.order) return;
@@ -536,36 +462,133 @@
       el.classList.toggle("done",on);
       var b=el.querySelector(".check"); if(b) b.setAttribute("aria-pressed",on?"true":"false");});
   }
-  function loadState(cb){
-    try{ if(window.storage&&typeof window.storage.get==="function"){
-      window.storage.get(STORE_KEY).then(function(r){ if(r&&r.value){ try{cb(JSON.parse(r.value));}catch(e){cb(null);} } else cb(null); }).catch(function(){cb(null);});
-      return; } }catch(e){}
-    cb(null);
+  function loadStateSync(){
+    try{var raw=localStorage.getItem(STORE_KEY); if(raw) return JSON.parse(raw);}catch(e){}
+    return null;
   }
   var saveT=null;
   function persist(){ var s=readState();
-    try{ if(window.storage&&typeof window.storage.set==="function"){ clearTimeout(saveT); saveT=setTimeout(function(){ try{window.storage.set(STORE_KEY,JSON.stringify(s));}catch(e){} },160); } }catch(e){} }
-  function clearStore(){ try{ if(window.storage&&typeof window.storage["delete"]==="function"){ window.storage["delete"](STORE_KEY).catch(function(){}); } }catch(e){} }
+    clearTimeout(saveT); saveT=setTimeout(function(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(s));}catch(e){} },160); }
+  function clearStore(){ try{localStorage.removeItem(STORE_KEY);}catch(e){} }
+  // Any board change persists and marks the timeline stale so it re-renders when shown.
+  function changed(){ persist(); timelineDirty=true; }
 
   function initSortable(){
     if(typeof window.Sortable!=="function") return;
     LANES.forEach(function(l){var ul=laneList(l.id); if(!ul) return;
-      window.Sortable.create(ul,{group:"nyc-trip",handle:".drag",animation:150,delay:120,delayOnTouchOnly:true,ghostClass:"sortable-ghost",chosenClass:"sortable-chosen",onEnd:persist});});
+      window.Sortable.create(ul,{group:"nyc-trip",handle:".drag",animation:150,delay:120,delayOnTouchOnly:true,ghostClass:"sortable-ghost",chosenClass:"sortable-chosen",onEnd:changed});});
   }
   function bindReset(){
     var rb=document.getElementById("resetBtn"); if(!rb) return;
     rb.addEventListener("click",function(){
+      if(!window.confirm("Reset the board to the original plan? This removes activities you've added and clears your done marks.")) return;
       clearStore();
+      CUSTOM.forEach(function(it){var el=document.querySelector('#view-planner .item[data-id="'+it.id+'"]'); if(el&&el.parentNode) el.parentNode.removeChild(el); delete ITEM_BY_ID[it.id];});
+      CUSTOM=[];
       ITEMS.forEach(function(it){var ul=laneList(it.lane)||laneList("ideas"); var el=document.querySelector('#view-planner .item[data-id="'+it.id+'"]'); if(ul&&el) ul.appendChild(el);});
       Array.prototype.forEach.call(document.querySelectorAll("#view-planner .item.done"),function(el){el.classList.remove("done"); var b=el.querySelector(".check"); if(b) b.setAttribute("aria-pressed","false");});
+      persist(); renderTimeline();
     });
   }
+  function bindAddForm(){
+    var f=document.getElementById("addForm"); if(!f) return;
+    f.addEventListener("submit",function(e){
+      e.preventDefault();
+      var ti=document.getElementById("addTitle"),no=document.getElementById("addNote"),
+          tg=document.getElementById("addTag"),ln=document.getElementById("addLane");
+      var title=(ti.value||"").trim(); if(!title) return;
+      var it={id:"c"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),
+              lane:ln.value,tag:tg.value,area:"",title:title,note:(no.value||"").trim(),custom:true};
+      ITEM_BY_ID[it.id]=it; CUSTOM.push(it);
+      var ul=laneList(it.lane)||laneList("ideas");
+      if(ul) ul.appendChild(makeItem(it,false));
+      ti.value=""; no.value="";
+      changed();
+      try{ti.focus();}catch(e2){}
+    });
+  }
+
+  /* ---- Timeline rendered from the planner state (so the two always agree) ---- */
+  function orderedItems(laneId,st){
+    return (st.order[laneId]||[]).map(function(id){return ITEM_BY_ID[id];}).filter(Boolean);
+  }
+  function glanceTitle(t){ var s=String(t).replace(/\s*\(.*?\)\s*/g," ").replace(/\s*[\u2014\u2013\u2192+].*$/,"").trim(); return s||String(t); }
+  function renderGlance(st){
+    var host=document.getElementById("weekGlance"); if(!host) return; host.innerHTML="";
+    DAYS.forEach(function(day){
+      var items=orderedItems(day.id,st);
+      var acts=items.filter(function(i){return i.tag!=="Eat"&&i.tag!=="Match";});
+      var eats=items.filter(function(i){return i.tag==="Eat";});
+      var matches=items.filter(function(i){return i.tag==="Match";});
+      var wk=document.createElement("div"); wk.className="wk"+(matches.length?" match":"");
+      var h="";
+      if(matches.length) h+='<div class="wk-band"></div>';
+      h+='<div class="wk-top"><b>'+esc(day.n)+'</b> \u00b7 '+esc(day.dow)+' \u00b7 '+esc(day.date)+'</div>';
+      h+='<div class="wk-th">'+esc(day.theme)+'</div>';
+      acts.forEach(function(a){ h+='<div class="wk-slot"><b>'+esc(a.tag)+'</b>'+esc(glanceTitle(a.title))+'</div>'; });
+      matches.forEach(function(m){ var mt=m.match?(m.match.home+" v "+m.match.away+" \u00b7 "+m.match.kick):m.title; h+='<div class="wk-match">'+esc(mt.toUpperCase())+'</div>'; });
+      if(eats.length) h+='<div class="wk-eat">'+eats.map(function(e){return esc(glanceTitle(e.title));}).join(" \u00b7 ")+'</div>';
+      if(!items.length) h+='<div class="wk-slot">\u2014</div>';
+      wk.innerHTML=h; host.appendChild(wk);
+    });
+  }
+  function tlSlot(it,st){
+    var done=!!st.done[it.id], dc=done?" tl-done":"", cm=it.custom?'<span class="tl-custom">Added</span>':"";
+    if(it.tag==="Eat"){
+      return '<div class="slot"><div class="slot-tag">Eat</div><div><p class="eat'+dc+'"><span class="eat-l">Eat</span><span class="pick">'+esc(it.title)+'</span>'+
+        (it.area?' <span class="area">\u00b7 '+esc(it.area)+'</span>':"")+cm+(it.note?'<span class="hint">'+esc(it.note)+'</span>':"")+'</p></div></div>';
+    }
+    return '<div class="slot"><div class="slot-tag">'+esc(it.tag)+'</div><div><p class="act'+dc+'"><span class="pick">'+esc(it.title)+'</span>'+
+      (it.area?' <span class="area">'+esc(it.area)+'</span>':"")+cm+(it.note?'<span class="hint">'+esc(it.note)+'</span>':"")+'</p></div></div>';
+  }
+  function dayCard(day,items,st){
+    var h='<article class="card" tabindex="0">';
+    h+='<div class="st-head"><span class="st-day">Day '+esc(day.n)+'</span><span class="st-date">'+esc(day.dow)+' \u00b7 '+esc(day.date)+' \u00b7 '+esc(day.theme)+'</span></div>';
+    if(!items.length) h+='<div class="tl-empty">Nothing planned yet \u2014 add something in the Planner.</div>';
+    items.forEach(function(it){ h+=tlSlot(it,st); });
+    return h+'</article>';
+  }
+  function matchCard(day,items,st){
+    var m=null,others=[];
+    items.forEach(function(it){ if(it.tag==="Match"&&!m) m=it; else others.push(it); });
+    var h='<article class="card" tabindex="0"><div class="band"></div><div class="match-body">';
+    h+='<div class="match-tag"><span>Day '+esc(day.n)+' \u00b7 '+esc(day.dow)+' \u00b7 '+esc(day.date)+'</span><span>'+esc(day.theme)+'</span></div>';
+    others.forEach(function(it){
+      var done=!!st.done[it.id], dc=done?" tl-done":"", cm=it.custom?'<span class="tl-custom">Added</span>':"";
+      if(it.tag==="Eat"){
+        h+='<div class="m-slot"><div class="m-slot-tag">Eat</div><div><p class="m-eat'+dc+'"><span class="m-eat-l">Eat</span>'+esc(it.title)+cm+(it.note?'<span class="m-hint">'+esc(it.note)+'</span>':"")+'</p></div></div>';
+      } else {
+        h+='<div class="m-slot"><div class="m-slot-tag">'+esc(it.tag)+'</div><div><p class="m-act'+dc+'">'+esc(it.title)+cm+(it.note?'<span class="m-hint">'+esc(it.note)+'</span>':"")+'</p></div></div>';
+      }
+    });
+    if(m&&m.match){
+      var f=m.match;
+      h+='<div class="fixture"><span class="team-nor">'+esc(f.home)+'</span><span class="v">v</span><span class="team-sen">'+esc(f.away)+'</span></div>';
+      h+='<div class="kick"><span>KICKOFF <b>'+esc(f.kick)+'</b></span><span>GATES <b>'+esc(f.gates)+'</b></span><span><b>'+esc(f.venue)+'</b></span></div>';
+      if(f.ticket) h+='<div class="ticket"><div class="ticket-h">Your run to the stadium</div><p>'+esc(f.ticket)+'</p></div>';
+    } else if(m){
+      h+='<div class="fixture"><span class="team-nor">'+esc(m.title)+'</span></div>';
+    }
+    return h+'</div></article>';
+  }
+  function renderDayByDay(st){
+    var host=document.getElementById("dayByDay"); if(!host) return; host.innerHTML="";
+    DAYS.forEach(function(day){
+      var items=orderedItems(day.id,st);
+      var hasMatch=items.some(function(i){return i.tag==="Match";});
+      var li=document.createElement("li"); li.className="stop"+(hasMatch?" match":"");
+      li.innerHTML='<div class="rail"><span class="bullet">'+esc(day.n)+'</span></div>'+(hasMatch?matchCard(day,items,st):dayCard(day,items,st));
+      host.appendChild(li);
+    });
+  }
+  function renderTimeline(){ var st=readState(); renderGlance(st); renderDayByDay(st); timelineDirty=false; }
 
   var mapReady=false,mapObj=null;
   function showView(v){
     ["timeline","planner","map"].forEach(function(n){
       var p=document.getElementById("view-"+n),t=document.getElementById("tab-"+n),on=(n===v);
       if(p) p.hidden=!on; if(t) t.setAttribute("aria-selected",on?"true":"false");});
+    if(v==="timeline"&&timelineDirty) renderTimeline();
     if(v==="map") ensureMap();
     try{window.scrollTo(0,0);}catch(e){}
   }
@@ -607,7 +630,26 @@
     el.innerHTML=html;
   }
 
-  function boot(){ initTabs(); renderDefault(); initSortable(); loadState(function(s){ if(s) applyState(s); }); bindReset(); buildLegend(); buildPlaceList(); }
+  function boot(){
+    initTabs();
+    renderDefault();
+    var s=loadStateSync();
+    if(s){
+      (s.custom||[]).forEach(function(def){
+        if(ITEM_BY_ID[def.id]) return;
+        def.custom=true; if(typeof def.note!=="string") def.note="";
+        ITEM_BY_ID[def.id]=def; CUSTOM.push(def);
+        var ul=laneList(def.lane)||laneList("ideas");
+        if(ul) ul.appendChild(makeItem(def,false));
+      });
+      applyState(s);
+    }
+    initSortable();
+    bindReset();
+    bindAddForm();
+    buildLegend(); buildPlaceList();
+    renderTimeline();
+  }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",boot); else boot();
 })();
 /*APP_END*/
