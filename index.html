@@ -207,6 +207,8 @@
   [data-detail-id]{cursor:pointer;}
   .slot[data-detail-id]:hover .pick,.m-slot[data-detail-id]:hover{color:var(--nor);}
   .fixture[data-detail-id]{cursor:pointer;}
+  .pl[data-detail-id]:hover,.pl[data-detail-id]:focus-visible{background:#f7f9fb;outline:none;}
+  .pl[data-detail-id]:focus-visible{box-shadow:inset 2px 0 0 var(--ink);}
 
   /* ---- Activity detail modal ---- */
   .modal-backdrop{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-end;justify-content:center;
@@ -536,6 +538,18 @@
   };
 
   var STORE_KEY="nyc-trip-board-v3";
+  // Map-view place rows -> the activity they belong to, so they open the same detail modal.
+  // (The hotel has no activity and stays non-clickable.)
+  var PLACE_TO_ITEM={
+    "Central Park":"d1a1","Bouchon Bakery":"d1e1","Top of the Rock":"d1a2","Keens Steakhouse":"d1e2",
+    "Statue of Liberty":"d2a1","Black Fox Coffee":"d2e1","9/11 Memorial & Museum":"d2a2","The Dead Rabbit":"d2e2",
+    "The Met":"d3a1","Central Park lake":"d3a2","Tompkins Square Bagels":"d3e1","La Pecora Bianca":"d3e2",
+    "Chelsea Market":"d4a1","The High Line":"d4a1","Jongro BBQ":"d4e2","MetLife Stadium":"d4m",
+    "Brooklyn Bridge":"d5a1","Brooklyn Bridge Park":"d5a2","Time Out Market":"d5e1","Juliana's":"d5e2",
+    "Grand Central + NYPL":"d6a1","Grand Central Oyster Bar":"d6e1","SUMMIT One Vanderbilt":"d6a2","Los Tacos No.1":"d6e2",
+    "Washington Square Park":"d7a1","SoHo":"d7a2","Jack's Wife Freda":"d7e1","Balthazar":"d7e2",
+    "Natural History Museum":"id2","Levain Bakery":"id3","Katz's Delicatessen":"id1","Peter Luger":"id4"
+  };
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
   function laneList(id){return document.getElementById("lane-"+id);}
 
@@ -764,7 +778,8 @@
       html+='<div class="pl-group-h">'+g[1]+'</div>';
       list.forEach(function(p){
         var area=p.area.replace(/^Day \d+ ?(AM|PM)? ?\u00b7 ?/,"").replace(/^Idea ?\u00b7 ?/,"").replace(/^Your base ?\u00b7 ?/,"");
-        html+='<div class="pl"><span class="dot'+(g[0]==="hotel"?" ring":"")+'" style="background:'+DAY_COLORS[g[0]]+'"></span><span>'+esc(p.name)+' <span class="area">\u00b7 '+esc(area)+'</span></span></div>';
+        var iid=PLACE_TO_ITEM[p.name], tap=(iid&&ITEM_BY_ID[iid])?' data-detail-id="'+esc(iid)+'" role="button" tabindex="0" aria-label="Details for '+esc(p.name)+'"':"";
+        html+='<div class="pl"'+tap+'><span class="dot'+(g[0]==="hotel"?" ring":"")+'" style="background:'+DAY_COLORS[g[0]]+'"></span><span>'+esc(p.name)+' <span class="area">\u00b7 '+esc(area)+'</span></span></div>';
       });
     });
     el.innerHTML=html;
@@ -854,16 +869,19 @@
     detailOpener=null;
   }
   function onModalKey(e){ if(e.key==="Escape"){ e.preventDefault(); closeDetail(); } }
+  // Delegated taps: any [data-detail-id] inside host opens that activity's modal.
+  function bindDetailDelegation(host){
+    if(!host) return;
+    host.addEventListener("click",function(e){ var el=e.target.closest&&e.target.closest("[data-detail-id]"); if(el){ var it=ITEM_BY_ID[el.getAttribute("data-detail-id")]; if(it) openDetail(it); } });
+    host.addEventListener("keydown",function(e){ if(e.key!=="Enter"&&e.key!==" ") return; var el=e.target.closest&&e.target.closest("[data-detail-id]"); if(el){ e.preventDefault(); var it=ITEM_BY_ID[el.getAttribute("data-detail-id")]; if(it) openDetail(it); } });
+  }
   function bindDetailModal(){
     var bg=document.getElementById("detailModal"); if(!bg) return;
     var c=document.getElementById("dmClose"); if(c) c.addEventListener("click",closeDetail);
     bg.addEventListener("click",function(e){ if(e.target===bg) closeDetail(); });
-    // Delegated taps from the timeline (day-by-day cards)
-    var tl=document.getElementById("dayByDay");
-    if(tl){
-      tl.addEventListener("click",function(e){ var el=e.target.closest&&e.target.closest("[data-detail-id]"); if(el){ var it=ITEM_BY_ID[el.getAttribute("data-detail-id")]; if(it) openDetail(it); } });
-      tl.addEventListener("keydown",function(e){ if(e.key!=="Enter"&&e.key!==" ") return; var el=e.target.closest&&e.target.closest("[data-detail-id]"); if(el){ e.preventDefault(); var it=ITEM_BY_ID[el.getAttribute("data-detail-id")]; if(it) openDetail(it); } });
-    }
+    // Timeline day-by-day cards and the Map view's place list both open the modal.
+    bindDetailDelegation(document.getElementById("dayByDay"));
+    bindDetailDelegation(document.getElementById("placeList"));
   }
 
   function boot(){
