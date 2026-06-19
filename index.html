@@ -165,6 +165,8 @@
   .pl-group-h:first-child{border-top:none;}
   .pl{display:flex;align-items:center;gap:10px;padding:9px 13px;border-top:1px solid var(--hair);font-size:.9rem;}
   .pl .area{color:var(--ink-soft);font-size:.82rem;}
+  .pl.pl-done{opacity:.55;}
+  .pl.pl-done .pl-name{text-decoration:line-through;}
 
   /* Footer */
   .notes{margin-top:30px;border-top:2px solid var(--ink);padding-top:17px;}
@@ -635,8 +637,8 @@
   function persist(){ var s=readState();
     clearTimeout(saveT); saveT=setTimeout(function(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(s));}catch(e){} },160); }
   function clearStore(){ try{localStorage.removeItem(STORE_KEY);}catch(e){} }
-  // Any board change persists and marks the timeline stale so it re-renders when shown.
-  function changed(){ persist(); timelineDirty=true; }
+  // Any board change persists and marks the timeline + map stale so they re-render when shown.
+  function changed(){ persist(); timelineDirty=true; mapDirty=true; }
 
   function initSortable(){
     if(typeof window.Sortable!=="function") return;
@@ -653,6 +655,7 @@
       ITEMS.forEach(function(it){var ul=laneList(it.lane)||laneList("ideas"); var el=document.querySelector('#view-planner .item[data-id="'+it.id+'"]'); if(ul&&el) ul.appendChild(el);});
       Array.prototype.forEach.call(document.querySelectorAll("#view-planner .item.done"),function(el){el.classList.remove("done"); var b=el.querySelector(".check"); if(b) b.setAttribute("aria-pressed","false");});
       persist(); renderTimeline();
+      mapDirty=true; if(!document.getElementById("view-map").hidden) refreshMap();
     });
   }
   function bindAddForm(){
@@ -750,49 +753,87 @@
   }
   function renderTimeline(){ var st=readState(); renderGlance(st); renderDayByDay(st); timelineDirty=false; }
 
-  var mapReady=false,mapObj=null;
+  // ---- Map view, rendered from the same planner state as the timeline ----
+  // place name -> item; invert to item -> [places] so a moved/ticked item updates its pins + list rows.
+  var ITEM_TO_PLACES={};
+  MAP_PLACES.forEach(function(p){ var iid=PLACE_TO_ITEM[p.name]; if(iid){ (ITEM_TO_PLACES[iid]=ITEM_TO_PLACES[iid]||[]).push(p); } });
+  var MAP_LANES=["d1","d2","d3","d4","d5","d6","d7","ideas"];
+  // Walk the current board order and emit each mapped place under the day its item now lives on.
+  // (Custom items have no coordinates, so they don't appear on the map.)
+  function mapPlan(st){
+    var out=[];
+    MAP_PLACES.forEach(function(p){ if(p.day==="hotel") out.push({place:p,day:"hotel",done:false}); });
+    MAP_LANES.forEach(function(laneId){
+      var day=(laneId==="ideas")?"idea":Number(laneId.slice(1));
+      (st.order[laneId]||[]).forEach(function(id){
+        var places=ITEM_TO_PLACES[id]; if(!places) return;
+        var done=!!st.done[id];
+        places.forEach(function(p){ out.push({place:p,day:day,itemId:id,done:done}); });
+      });
+    });
+    return out;
+  }
+  function dayLabelShort(day){ return day==="hotel"?"Your base":(day==="idea"?"Idea":"Day "+day); }
+  // Neighbourhood = the part of a place's blurb after its (now possibly stale) day prefix.
+  function neighbourhood(area){ var i=area.indexOf("\u00b7"); return (i>=0?area.slice(i+1):area).trim(); }
+
+  var mapReady=false,mapObj=null,mapLayer=null,mapDirty=true;
   function showView(v){
     ["timeline","planner","map"].forEach(function(n){
       var p=document.getElementById("view-"+n),t=document.getElementById("tab-"+n),on=(n===v);
       if(p) p.hidden=!on; if(t) t.setAttribute("aria-selected",on?"true":"false");});
     if(v==="timeline"&&timelineDirty) renderTimeline();
-    if(v==="map") ensureMap();
+    if(v==="map"){ ensureMap(); if(mapDirty) refreshMap(); }
     try{window.scrollTo(0,0);}catch(e){}
   }
   function initTabs(){ Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(t){ t.addEventListener("click",function(){showView(t.getAttribute("data-view"));}); }); }
 
+  // Re-draw pins + the list from the live board state. Safe to call repeatedly.
+  function refreshMap(){
+    var st=readState(), pts=[];
+    buildPlaceList(st);
+    if(mapObj){
+      if(mapLayer) mapLayer.clearLayers(); else mapLayer=L.layerGroup().addTo(mapObj);
+      mapPlan(st).forEach(function(e){
+        var p=e.place, hotel=(e.day==="hotel"), col=DAY_COLORS[e.day]||"#1A1C22";
+        var mk=L.circleMarker([p.lat,p.lng],{radius:hotel?9:7,color:"#fff",weight:hotel?3:2,fillColor:col,opacity:e.done?.5:1,fillOpacity:e.done?.45:1});
+        var sub=hotel?p.area:(dayLabelShort(e.day)+" \u00b7 "+neighbourhood(p.area));
+        mk.bindPopup('<div class="pop-t">'+esc(p.name)+'</div><div class="pop-m">'+esc(sub)+'</div>');
+        mk.addTo(mapLayer); pts.push([p.lat,p.lng]);
+      });
+    }
+    mapDirty=false;
+    return pts;
+  }
   function ensureMap(){
     if(mapReady){ if(mapObj) setTimeout(function(){mapObj.invalidateSize();},60); return; }
-    if(typeof L==="undefined"){ buildLegend(); buildPlaceList(); return; }
+    buildLegend();
+    if(typeof L==="undefined"){ refreshMap(); return; }
     mapReady=true;
     var map=L.map("map",{scrollWheelZoom:false}).setView([40.74,-73.98],12); mapObj=map;
     L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{attribution:"&copy; OpenStreetMap, &copy; CARTO",subdomains:"abcd",maxZoom:19}).addTo(map);
-    var pts=[];
-    MAP_PLACES.forEach(function(p){
-      var col=DAY_COLORS[p.day]||"#1A1C22", hotel=(p.day==="hotel");
-      var mk=L.circleMarker([p.lat,p.lng],{radius:hotel?9:7,color:"#fff",weight:hotel?3:2,fillColor:col,fillOpacity:1}).addTo(map);
-      mk.bindPopup('<div class="pop-t">'+esc(p.name)+'</div><div class="pop-m">'+esc(p.area)+'</div>');
-      pts.push([p.lat,p.lng]);
-    });
+    var pts=refreshMap();
     setTimeout(function(){ map.invalidateSize(); try{ map.fitBounds(pts,{padding:[30,30]}); }catch(e){} },90);
-    buildLegend(); buildPlaceList();
   }
   function buildLegend(){
     var el=document.getElementById("legend"); if(!el) return;
     var rows=[["hotel","Hotel"],[1,"Day 1"],[2,"Day 2"],[3,"Day 3"],[4,"Match day"],[5,"Day 5"],[6,"Day 6"],[7,"Day 7"],["idea","Ideas"]];
     el.innerHTML=rows.map(function(r){var ring=(r[0]==="hotel")?" ring":""; return '<i><span class="dot'+ring+'" style="background:'+DAY_COLORS[r[0]]+'"></span>'+r[1]+'</i>';}).join("");
   }
-  function buildPlaceList(){
+  function buildPlaceList(st){
+    st=st||readState();
     var el=document.getElementById("placeList"); if(!el) return;
     var groups=[["hotel","Your base"],[1,"Day 1 \u00b7 Fri"],[2,"Day 2 \u00b7 Sat"],[3,"Day 3 \u00b7 Sun"],[4,"Day 4 \u00b7 Mon (match)"],[5,"Day 5 \u00b7 Tue"],[6,"Day 6 \u00b7 Wed"],[7,"Day 7 \u00b7 Thu"],["idea","More ideas"]];
+    var byDay={}; mapPlan(st).forEach(function(e){ (byDay[e.day]=byDay[e.day]||[]).push(e); });
     var html="";
     groups.forEach(function(g){
-      var list=MAP_PLACES.filter(function(p){return p.day===g[0];}); if(!list.length) return;
+      var list=byDay[g[0]]; if(!list||!list.length) return;
       html+='<div class="pl-group-h">'+g[1]+'</div>';
-      list.forEach(function(p){
+      list.forEach(function(e){
+        var p=e.place;
         var area=p.area.replace(/^Day \d+ ?(AM|PM)? ?\u00b7 ?/,"").replace(/^Idea ?\u00b7 ?/,"").replace(/^Your base ?\u00b7 ?/,"");
         var iid=PLACE_TO_ITEM[p.name], tap=(iid&&ITEM_BY_ID[iid])?' data-detail-id="'+esc(iid)+'" role="button" tabindex="0" aria-label="Details for '+esc(p.name)+'"':"";
-        html+='<div class="pl"'+tap+'><span class="dot'+(g[0]==="hotel"?" ring":"")+'" style="background:'+DAY_COLORS[g[0]]+'"></span><span>'+esc(p.name)+' <span class="area">\u00b7 '+esc(area)+'</span></span></div>';
+        html+='<div class="pl'+(e.done?" pl-done":"")+'"'+tap+'><span class="dot'+(g[0]==="hotel"?" ring":"")+'" style="background:'+DAY_COLORS[g[0]]+'"></span><span class="pl-name">'+esc(p.name)+' <span class="area">\u00b7 '+esc(area)+'</span></span></div>';
       });
     });
     el.innerHTML=html;
