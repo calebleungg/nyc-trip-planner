@@ -124,7 +124,7 @@
   .lane-head::after{content:"";flex:1;height:1px;background:var(--hair);}
   .lane.ideas .lane-head{color:var(--eat);}
   .lane-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;min-height:18px;}
-  .item{display:grid;grid-template-columns:22px 26px 1fr;gap:9px;align-items:center;background:var(--card);border:1px solid var(--hair);border-radius:6px;padding:10px 11px;}
+  .item{display:grid;grid-template-columns:22px 26px 1fr auto;gap:9px;align-items:center;background:var(--card);border:1px solid var(--hair);border-radius:6px;padding:10px 11px;}
   .item.match{border-left:3px solid var(--nor);}
   .item.done{opacity:.5;} .item.done .item-title{text-decoration:line-through;}
   .drag{cursor:grab;color:var(--ink-soft);font-size:1.05rem;line-height:1;letter-spacing:-2px;text-align:center;touch-action:none;user-select:none;-webkit-user-select:none;padding:4px 0;}
@@ -335,7 +335,7 @@
     <div class="sec-head"><span class="sec-num">D</span><span class="sec-title">Your board</span></div>
     <p class="sec-sub">Everything suggested, plus extra ideas. Rearrange it into your own plan and tick things off as you go.</p>
     <div class="board-tools">
-      <span class="hint-txt">Drag the <b>⋮⋮</b> handle to move an item between days · tap the circle to mark it done · add your own below · changes are saved as you go and mirrored in the Timeline.</span>
+      <span class="hint-txt">Drag the <b>⋮⋮</b> handle to move an item between days · tap the circle to mark it done · tap <b>×</b> to remove it (it drops into <b>More ideas</b>; tap <b>×</b> again there to delete it) · add your own below · changes are saved as you go and mirrored in the Timeline.</span>
       <button class="btn" id="resetBtn" type="button">Reset board</button>
     </div>
     <form class="add-form" id="addForm" autocomplete="off">
@@ -571,13 +571,13 @@
   // id -> item lookup (includes user-added items); the timeline renders from this.
   var ITEM_BY_ID={}; ITEMS.forEach(function(it){ITEM_BY_ID[it.id]=it;});
   var CUSTOM=[];            // user-added items, persisted so they survive reloads
+  var REMOVED={};           // built-in ids the user has deleted off the board (Reset restores them)
   var timelineDirty=true;   // re-render the timeline lazily when it's next shown
 
   function makeItem(it,done){
     var li=document.createElement("li");
     li.className="item"+(done?" done":"")+(it.tag==="Match"?" match":"")+(it.custom?" custom":"");
     li.setAttribute("data-id",it.id);
-    if(it.custom) li.style.gridTemplateColumns="22px 26px 1fr auto";
     var drag=document.createElement("span"); drag.className="drag"; drag.setAttribute("aria-hidden","true"); drag.textContent="\u22EE\u22EE";
     var btn=document.createElement("button"); btn.type="button"; btn.className="check";
     btn.setAttribute("aria-label","Mark done: "+it.title); btn.setAttribute("aria-pressed",done?"true":"false"); btn.textContent="\u2713";
@@ -592,19 +592,29 @@
     main.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openDetail(it); } });
     btn.addEventListener("click",function(){toggle(li,btn);});
     li.appendChild(drag); li.appendChild(btn); li.appendChild(main);
-    if(it.custom){
+    // The match is the marquee stop and stays put; everything else can be removed.
+    if(it.tag!=="Match"){
       var del=document.createElement("button"); del.type="button"; del.className="del";
-      del.setAttribute("aria-label","Remove: "+it.title); del.textContent="\u00D7";
-      del.addEventListener("click",function(){removeCustom(it,li);});
+      del.setAttribute("aria-label","Remove from plan: "+it.title); del.textContent="\u00D7";
+      del.addEventListener("click",function(){removeItem(it,li);});
       li.appendChild(del);
     }
     return li;
   }
   function toggle(li,btn){var on=li.classList.toggle("done"); btn.setAttribute("aria-pressed",on?"true":"false"); changed();}
-  function removeCustom(it,li){
-    if(li&&li.parentNode) li.parentNode.removeChild(li);
-    CUSTOM=CUSTOM.filter(function(x){return x.id!==it.id;});
-    delete ITEM_BY_ID[it.id];
+  // Two-stage delete: removing a scheduled item shelves it in "More ideas" (still re-addable);
+  // removing it again from there takes it off the board for good. Reset brings the defaults back.
+  function removeItem(it,li){
+    var inIdeas=li&&li.parentNode&&li.parentNode.id==="lane-ideas";
+    if(inIdeas){
+      if(li&&li.parentNode) li.parentNode.removeChild(li);
+      if(it.custom){ CUSTOM=CUSTOM.filter(function(x){return x.id!==it.id;}); delete ITEM_BY_ID[it.id]; }
+      else { REMOVED[it.id]=true; }   // built-ins are hidden, not forgotten, so Reset can restore them
+    } else {
+      var ideas=laneList("ideas"); if(ideas) ideas.appendChild(li);
+      li.classList.remove("done");
+      var b=li.querySelector(".check"); if(b) b.setAttribute("aria-pressed","false");
+    }
     changed();
   }
 
@@ -618,7 +628,7 @@
       order[l.id]=Array.prototype.slice.call(ul.querySelectorAll(".item")).map(function(el){return el.getAttribute("data-id");});});
     Array.prototype.forEach.call(document.querySelectorAll("#view-planner .item.done"),function(el){done[el.getAttribute("data-id")]=true;});
     var custom=CUSTOM.map(function(it){return {id:it.id,lane:it.lane,tag:it.tag,area:it.area||"",title:it.title,note:it.note||""};});
-    return {order:order,done:done,custom:custom};
+    return {order:order,done:done,custom:custom,removed:Object.keys(REMOVED)};
   }
   function applyState(state){
     if(!state||!state.order) return;
@@ -648,12 +658,11 @@
   function bindReset(){
     var rb=document.getElementById("resetBtn"); if(!rb) return;
     rb.addEventListener("click",function(){
-      if(!window.confirm("Reset the board to the original plan? This removes activities you've added and clears your done marks.")) return;
+      if(!window.confirm("Reset the board to the original plan? This removes activities you've added, restores any you've deleted, and clears your done marks.")) return;
       clearStore();
-      CUSTOM.forEach(function(it){var el=document.querySelector('#view-planner .item[data-id="'+it.id+'"]'); if(el&&el.parentNode) el.parentNode.removeChild(el); delete ITEM_BY_ID[it.id];});
-      CUSTOM=[];
-      ITEMS.forEach(function(it){var ul=laneList(it.lane)||laneList("ideas"); var el=document.querySelector('#view-planner .item[data-id="'+it.id+'"]'); if(ul&&el) ul.appendChild(el);});
-      Array.prototype.forEach.call(document.querySelectorAll("#view-planner .item.done"),function(el){el.classList.remove("done"); var b=el.querySelector(".check"); if(b) b.setAttribute("aria-pressed","false");});
+      CUSTOM.forEach(function(it){delete ITEM_BY_ID[it.id];});
+      CUSTOM=[]; REMOVED={};
+      renderDefault();   // rebuilds every lane from the defaults, restoring deleted built-ins
       persist(); renderTimeline();
       mapDirty=true; if(!document.getElementById("view-map").hidden) refreshMap();
     });
@@ -1043,6 +1052,11 @@
         ITEM_BY_ID[def.id]=def; CUSTOM.push(def);
         var ul=laneList(def.lane)||laneList("ideas");
         if(ul) ul.appendChild(makeItem(def,false));
+      });
+      (s.removed||[]).forEach(function(id){
+        REMOVED[id]=true;
+        var el=document.querySelector('#view-planner .item[data-id="'+id+'"]');
+        if(el&&el.parentNode) el.parentNode.removeChild(el);
       });
       applyState(s);
     }
